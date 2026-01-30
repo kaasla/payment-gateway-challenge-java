@@ -1,6 +1,7 @@
 package com.checkout.payment.gateway.configuration;
 
 import java.time.Duration;
+import java.time.Clock;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,5 +16,10 @@ public class ApplicationConfiguration {
         .setConnectTimeout(Duration.ofMillis(10000))
         .setReadTimeout(Duration.ofMillis(10000))
         .build();
+  }
+
+  @Bean
+  public Clock clock() {
+    return Clock.systemUTC();
   }
 }
