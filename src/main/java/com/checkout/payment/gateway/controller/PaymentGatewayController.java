@@ -27,6 +27,10 @@ public class PaymentGatewayController {
   }
 
   @GetMapping("/payment/{id}")
+  @Operation(summary = "Retrieve a payment by ID")
+  @ApiResponse(responseCode = "200", description = "Payment found",
+      content = @Content(schema = @Schema(implementation = PostPaymentResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Payment not found")
   public ResponseEntity<PostPaymentResponse> getPostPaymentEventById(@PathVariable UUID id) {
     return new ResponseEntity<>(paymentGatewayService.getPaymentById(id), HttpStatus.OK);
   }

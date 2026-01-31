@@ -38,7 +38,7 @@ public class CommonExceptionHandler {
 
   @ExceptionHandler(EventProcessingException.class)
   public ResponseEntity<ErrorResponse> handleException(EventProcessingException ex) {
-    LOG.error("Exception happened", ex);
+    LOG.warn("Resource not found");
     return new ResponseEntity<>(new ErrorResponse("Page not found"),
         HttpStatus.NOT_FOUND);
   }
@@ -48,5 +48,12 @@ public class CommonExceptionHandler {
     LOG.error("Bank unavailable", ex);
     return new ResponseEntity<>(new ErrorResponse("Payment processor unavailable, retry later"),
         HttpStatus.SERVICE_UNAVAILABLE);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+    LOG.error("Unhandled error", ex);
+    return new ResponseEntity<>(new ErrorResponse("Internal server error"),
+        HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }
