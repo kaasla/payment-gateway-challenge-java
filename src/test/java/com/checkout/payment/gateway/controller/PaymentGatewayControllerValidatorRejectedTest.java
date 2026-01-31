@@ -39,7 +39,7 @@ class PaymentGatewayControllerValidatorRejectedTest {
         "  \"cvv\": \"123\"\n" +
         "}";
 
-    mvc.perform(post("/payment").contentType(MediaType.APPLICATION_JSON).content(body))
+    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value("Rejected"))
         .andExpect(jsonPath("$.errors").isArray())
@@ -48,4 +48,3 @@ class PaymentGatewayControllerValidatorRejectedTest {
     verify(bankClient, never()).authorize(any());
   }
 }
-

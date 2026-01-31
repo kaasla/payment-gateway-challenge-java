@@ -5,6 +5,7 @@ import com.checkout.payment.gateway.exception.PaymentRejectedException;
 import com.checkout.payment.gateway.model.BankPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
+import com.checkout.payment.gateway.model.GetPaymentResponse;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -28,9 +29,19 @@ public class PaymentGatewayService {
     this.paymentValidator = paymentValidator;
   }
 
-  public PostPaymentResponse getPaymentById(UUID id) {
+  public GetPaymentResponse getPaymentById(UUID id) {
     LOG.debug("event=payment.lookup id={}", id);
-    return paymentsRepository.get(id).orElseThrow(() -> new EventProcessingException("Invalid ID"));
+    var stored = paymentsRepository.get(id)
+        .orElseThrow(() -> new EventProcessingException("Invalid ID"));
+    return GetPaymentResponse.builder()
+        .id(stored.getId())
+        .status(stored.getStatus())
+        .cardNumberLastFour(stored.getCardNumberLastFour())
+        .expiryMonth(stored.getExpiryMonth())
+        .expiryYear(stored.getExpiryYear())
+        .currency(stored.getCurrency())
+        .amount(stored.getAmount())
+        .build();
   }
 
   public PostPaymentResponse processPayment(PostPaymentRequest paymentRequest) {
@@ -57,7 +68,7 @@ public class PaymentGatewayService {
         ? com.checkout.payment.gateway.enums.PaymentStatus.AUTHORIZED
         : com.checkout.payment.gateway.enums.PaymentStatus.DECLINED;
 
-    int last4 = extractLast4(paymentRequest.getCardNumber());
+    int last4 = CardDataUtil.extractLast4(paymentRequest.getCardNumber());
     var id = UUID.randomUUID();
     MDC.put("payment_id", id.toString());
     var response = PostPaymentResponse.builder()
@@ -78,15 +89,4 @@ public class PaymentGatewayService {
     return response;
   }
 
-  private int extractLast4(String pan) {
-    if (pan == null || pan.length() < 4) {
-      return 0;
-    }
-    String last4 = pan.substring(pan.length() - 4);
-    try {
-      return Integer.parseInt(last4);
-    } catch (NumberFormatException e) {
-      return 0;
-    }
-  }
 }

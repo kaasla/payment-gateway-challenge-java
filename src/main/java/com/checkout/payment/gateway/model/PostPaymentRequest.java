@@ -1,5 +1,6 @@
 package com.checkout.payment.gateway.model;
 
+import com.checkout.payment.gateway.service.CardDataUtil;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
@@ -29,7 +30,6 @@ public class PostPaymentRequest implements Serializable {
   private int expiryMonth;
 
   @Schema(description = "Expiry year (must be in the future)", example = "2030")
-  @Min(2000)
   @JsonProperty("expiry_year")
   private int expiryYear;
 
@@ -56,25 +56,12 @@ public class PostPaymentRequest implements Serializable {
   @Override
   public String toString() {
     return "PostPaymentRequest{" +
-        "cardNumber=" + maskCardNumber(cardNumber) +
+        "cardNumber=" + CardDataUtil.maskPan(cardNumber) +
         ", expiryMonth=" + expiryMonth +
         ", expiryYear=" + expiryYear +
         ", currency='" + currency + '\'' +
         ", amount=" + amount +
-        ", cvv=" + maskCvv(cvv) +
+        ", cvv=" + CardDataUtil.maskCvv(cvv) +
         '}';
-  }
-
-  private static String maskCardNumber(String pan) {
-    if (pan == null || pan.length() < 4) {
-      return "****";
-    }
-    int unmasked = 4;
-    String last4 = pan.substring(pan.length() - unmasked);
-    return "*".repeat(Math.max(0, pan.length() - unmasked)) + last4;
-  }
-
-  private static String maskCvv(String c) {
-    return c == null ? "***" : "***";
   }
 }
