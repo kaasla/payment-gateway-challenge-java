@@ -2,6 +2,7 @@ package com.checkout.payment.gateway.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.checkout.payment.gateway.utils.CardDataUtil;
 import org.junit.jupiter.api.Test;
 
 class CardDataUtilTest {
@@ -30,4 +31,3 @@ class CardDataUtilTest {
     assertThat(CardDataUtil.extractLast4(null)).isEqualTo(0);
   }
 }
-

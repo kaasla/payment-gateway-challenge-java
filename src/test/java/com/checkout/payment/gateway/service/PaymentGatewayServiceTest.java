@@ -19,7 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -29,7 +28,7 @@ class PaymentGatewayServiceTest {
   @Mock
   PaymentsRepository paymentsRepository;
   @Mock
-  BankClient bankClient;
+  BankService bankService;
   @Mock
   PaymentValidator paymentValidator;
 
@@ -37,7 +36,7 @@ class PaymentGatewayServiceTest {
 
   @BeforeEach
   void setup() {
-    service = new PaymentGatewayService(paymentsRepository, bankClient, paymentValidator);
+    service = new PaymentGatewayService(paymentsRepository, bankService, paymentValidator);
   }
 
   private PostPaymentRequest.PostPaymentRequestBuilder validRequest() {
@@ -58,7 +57,7 @@ class PaymentGatewayServiceTest {
     assertThatThrownBy(() -> service.processPayment(req))
         .isInstanceOf(PaymentRejectedException.class);
 
-    verify(bankClient, never()).authorize(any());
+    verify(bankService, never()).requestAuthorization(any());
     verify(paymentsRepository, never()).add(any());
   }
 
@@ -66,7 +65,7 @@ class PaymentGatewayServiceTest {
   void whenAuthorized_thenStatusAuthorized_andPersisted() {
     var req = validRequest().build();
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());
-    when(bankClient.authorize(any())).thenReturn(BankPaymentResponse.builder()
+    when(bankService.requestAuthorization(any())).thenReturn(BankPaymentResponse.builder()
         .authorized(true)
         .authorizationCode("auth")
         .build());
@@ -85,7 +84,7 @@ class PaymentGatewayServiceTest {
   void whenDeclined_thenStatusDeclined_andPersisted() {
     var req = validRequest().build();
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());
-    when(bankClient.authorize(any())).thenReturn(BankPaymentResponse.builder()
+    when(bankService.requestAuthorization(any())).thenReturn(BankPaymentResponse.builder()
         .authorized(false)
         .authorizationCode("unauth")
         .build());
@@ -99,7 +98,7 @@ class PaymentGatewayServiceTest {
   void whenPanNonDigit_last4FallsBackToZero() {
     var req = validRequest().cardNumber("abcdEFGHijklMNOP").build();
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());
-    when(bankClient.authorize(any())).thenReturn(BankPaymentResponse.builder()
+    when(bankService.requestAuthorization(any())).thenReturn(BankPaymentResponse.builder()
         .authorized(false)
         .authorizationCode("x")
         .build());

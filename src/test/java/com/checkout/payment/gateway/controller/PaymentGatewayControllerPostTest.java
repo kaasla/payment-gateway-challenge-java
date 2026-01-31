@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.checkout.payment.gateway.exception.AcquiringBankUnavailableException;
 import com.checkout.payment.gateway.model.BankPaymentRequest;
 import com.checkout.payment.gateway.model.BankPaymentResponse;
-import com.checkout.payment.gateway.service.BankClient;
+import com.checkout.payment.gateway.service.BankService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,11 +26,11 @@ class PaymentGatewayControllerPostTest {
   private MockMvc mvc;
 
   @MockBean
-  private BankClient bankClient;
+  private BankService bankService;
 
   @Test
   void postValidAuthorized_returns201Authorized() throws Exception {
-    when(bankClient.authorize(any(BankPaymentRequest.class)))
+    when(bankService.requestAuthorization(any(BankPaymentRequest.class)))
         .thenReturn(BankPaymentResponse.builder().authorized(true).authorizationCode("auth").build());
 
     String body = "{\n" +
@@ -50,7 +50,7 @@ class PaymentGatewayControllerPostTest {
 
   @Test
   void postValidDeclined_returns201Declined() throws Exception {
-    when(bankClient.authorize(any(BankPaymentRequest.class)))
+    when(bankService.requestAuthorization(any(BankPaymentRequest.class)))
         .thenReturn(BankPaymentResponse.builder().authorized(false).authorizationCode("unauth").build());
 
     String body = "{\n" +
@@ -88,7 +88,7 @@ class PaymentGatewayControllerPostTest {
 
   @Test
   void postWhenBankUnavailable_returns503() throws Exception {
-    when(bankClient.authorize(any(BankPaymentRequest.class)))
+    when(bankService.requestAuthorization(any(BankPaymentRequest.class)))
         .thenThrow(new AcquiringBankUnavailableException("down"));
 
     String body = "{\n" +

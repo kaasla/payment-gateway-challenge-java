@@ -22,7 +22,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
-class BankHttpClientTest {
+class BankServiceTest {
 
   @Test
   void authorize_when200AuthorizedFalse_returnsUnauthorized() {
@@ -37,8 +37,8 @@ class BankHttpClientTest {
             .contentType(MediaType.APPLICATION_JSON)
             .body("{\"authorized\":false,\"authorization_code\":\"def\"}"));
 
-    BankHttpClient client = new BankHttpClient(rt, baseUrl);
-    BankPaymentResponse resp = client.authorize(BankPaymentRequest.builder()
+    BankService client = new BankService(rt, baseUrl);
+    BankPaymentResponse resp = client.requestAuthorization(BankPaymentRequest.builder()
         .cardNumber("4242424242424242")
         .expiryDate("01/2030")
         .currency("USD")
@@ -64,8 +64,8 @@ class BankHttpClientTest {
             .contentType(MediaType.APPLICATION_JSON)
             .body("{\"authorized\":true,\"authorization_code\":\"abc\"}"));
 
-    BankHttpClient client = new BankHttpClient(rt, baseUrl);
-    BankPaymentResponse resp = client.authorize(BankPaymentRequest.builder()
+    BankService client = new BankService(rt, baseUrl);
+    BankPaymentResponse resp = client.requestAuthorization(BankPaymentRequest.builder()
         .cardNumber("4242424242424241")
         .expiryDate("12/2030")
         .currency("USD")
@@ -88,8 +88,8 @@ class BankHttpClientTest {
         .andExpect(method(HttpMethod.POST))
         .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
-    BankHttpClient client = new BankHttpClient(rt, baseUrl);
-    assertThatThrownBy(() -> client.authorize(BankPaymentRequest.builder()
+    BankService client = new BankService(rt, baseUrl);
+    assertThatThrownBy(() -> client.requestAuthorization(BankPaymentRequest.builder()
         .cardNumber("4242424242424241")
         .expiryDate("12/2030")
         .currency("USD")
@@ -107,9 +107,9 @@ class BankHttpClientTest {
     Mockito.when(rt.postForEntity(Mockito.eq(baseUrl + "/payments"), Mockito.any(), Mockito.eq(BankPaymentResponse.class)))
         .thenThrow(new ResourceAccessException("timeout"));
 
-    BankHttpClient client = new BankHttpClient(rt, baseUrl);
+    BankService client = new BankService(rt, baseUrl);
 
-    assertThatThrownBy(() -> client.authorize(BankPaymentRequest.builder()
+    assertThatThrownBy(() -> client.requestAuthorization(BankPaymentRequest.builder()
         .cardNumber("4242424242424241")
         .expiryDate("12/2030")
         .currency("USD")

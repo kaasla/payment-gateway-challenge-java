@@ -1,4 +1,4 @@
-package com.checkout.payment.gateway.service;
+package com.checkout.payment.gateway.utils;
 
 public final class CardDataUtil {
 

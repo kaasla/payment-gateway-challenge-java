@@ -7,11 +7,15 @@ import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.GetPaymentResponse;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
+import com.checkout.payment.gateway.utils.CardDataUtil;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
+
+import static com.checkout.payment.gateway.enums.PaymentStatus.AUTHORIZED;
+import static com.checkout.payment.gateway.enums.PaymentStatus.DECLINED;
 
 @Service
 public class PaymentGatewayService {
@@ -19,13 +23,13 @@ public class PaymentGatewayService {
   private static final Logger LOG = LoggerFactory.getLogger(PaymentGatewayService.class);
 
   private final PaymentsRepository paymentsRepository;
-  private final BankClient bankClient;
+  private final BankService bankService;
   private final PaymentValidator paymentValidator;
 
-  public PaymentGatewayService(PaymentsRepository paymentsRepository, BankClient bankClient,
+  public PaymentGatewayService(PaymentsRepository paymentsRepository, BankService bankService,
       PaymentValidator paymentValidator) {
     this.paymentsRepository = paymentsRepository;
-    this.bankClient = bankClient;
+    this.bankService = bankService;
     this.paymentValidator = paymentValidator;
   }
 
@@ -62,11 +66,11 @@ public class PaymentGatewayService {
         .cvv(paymentRequest.getCvv())
         .build();
 
-    var bankResp = bankClient.authorize(bankReq);
+    var bankResp = bankService.requestAuthorization(bankReq);
 
     var status = bankResp.authorized()
-        ? com.checkout.payment.gateway.enums.PaymentStatus.AUTHORIZED
-        : com.checkout.payment.gateway.enums.PaymentStatus.DECLINED;
+        ? AUTHORIZED
+        : DECLINED;
 
     int last4 = CardDataUtil.extractLast4(paymentRequest.getCardNumber());
     var id = UUID.randomUUID();

@@ -3,12 +3,14 @@ package com.checkout.payment.gateway.configuration;
 import java.time.Duration;
 import java.time.Clock;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.core.Ordered;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
+import com.checkout.payment.gateway.service.BankService;
 
 @Configuration
 public class ApplicationConfiguration {
@@ -45,5 +47,11 @@ public class ApplicationConfiguration {
     reg.setOrder(Ordered.HIGHEST_PRECEDENCE);
     reg.addUrlPatterns("/*");
     return reg;
+  }
+
+  @Bean
+  public BankService bankClient(RestTemplate restTemplate,
+      @Value("${bank.base-url:http://localhost:8080}") String baseUrl) {
+    return new BankService(restTemplate, baseUrl);
   }
 }

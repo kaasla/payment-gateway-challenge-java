@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.checkout.payment.gateway.service.BankClient;
+import com.checkout.payment.gateway.service.BankService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,7 +25,7 @@ class PaymentGatewayControllerValidatorRejectedTest {
   private MockMvc mvc;
 
   @MockBean
-  private BankClient bankClient; // should not be called when validator rejects
+  private BankService bankService; // should not be called when validator rejects
 
   @Test
   void postRejectedByValidator_returns400AndDoesNotCallBank() throws Exception {
@@ -45,6 +45,6 @@ class PaymentGatewayControllerValidatorRejectedTest {
         .andExpect(jsonPath("$.errors").isArray())
         .andExpect(header().exists("X-Correlation-Id"));
 
-    verify(bankClient, never()).authorize(any());
+    verify(bankService, never()).requestAuthorization(any());
   }
 }
