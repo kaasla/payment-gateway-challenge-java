@@ -42,4 +42,11 @@ public class CommonExceptionHandler {
     return new ResponseEntity<>(new ErrorResponse("Page not found"),
         HttpStatus.NOT_FOUND);
   }
+
+  @ExceptionHandler(AcquiringBankUnavailableException.class)
+  public ResponseEntity<ErrorResponse> handleBankUnavailable(AcquiringBankUnavailableException ex) {
+    LOG.error("Bank unavailable", ex);
+    return new ResponseEntity<>(new ErrorResponse("Payment processor unavailable, retry later"),
+        HttpStatus.SERVICE_UNAVAILABLE);
+  }
 }
