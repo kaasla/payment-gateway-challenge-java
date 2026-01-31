@@ -8,6 +8,5 @@ import lombok.Builder;
 @Schema(name = "BankPaymentResponse", description = "Response shape from bank simulator")
 public record BankPaymentResponse(
     @JsonProperty("authorized") boolean authorized,
-    @JsonProperty("authorization_code") String authorization_code
+    @JsonProperty("authorization_code") String authorizationCode
 ) {}
-

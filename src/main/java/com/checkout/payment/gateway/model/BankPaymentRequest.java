@@ -7,10 +7,9 @@ import lombok.Builder;
 @Builder
 @Schema(name = "BankPaymentRequest", description = "Request shape for bank simulator")
 public record BankPaymentRequest(
-    @JsonProperty("card_number") String card_number,
-    @JsonProperty("expiry_date") String expiry_date,
+    @JsonProperty("card_number") String cardNumber,
+    @JsonProperty("expiry_date") String expiryDate,
     @JsonProperty("currency") String currency,
     @JsonProperty("amount") int amount,
     @JsonProperty("cvv") String cvv
 ) {}
-

@@ -16,8 +16,8 @@ public class ApplicationConfiguration {
   @Bean
   public RestTemplate restTemplate(RestTemplateBuilder builder) {
     return builder
-        .setConnectTimeout(Duration.ofMillis(2000))
-        .setReadTimeout(Duration.ofMillis(2000))
+        .setConnectTimeout(Duration.ofMillis(10000))
+        .setReadTimeout(Duration.ofMillis(10000))
         .additionalInterceptors((request, body, execution) -> {
           String corr = MDC.get(CorrelationIdFilter.MDC_KEY);
           if (corr != null && !corr.isBlank()) {

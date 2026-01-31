@@ -31,7 +31,7 @@ class PaymentGatewayControllerPostTest {
   @Test
   void postValidAuthorized_returns201Authorized() throws Exception {
     when(bankClient.authorize(any(BankPaymentRequest.class)))
-        .thenReturn(BankPaymentResponse.builder().authorized(true).authorization_code("auth").build());
+        .thenReturn(BankPaymentResponse.builder().authorized(true).authorizationCode("auth").build());
 
     String body = "{\n" +
         "  \"card_number\": \"2222405343248877\",\n" +
@@ -51,7 +51,7 @@ class PaymentGatewayControllerPostTest {
   @Test
   void postValidDeclined_returns201Declined() throws Exception {
     when(bankClient.authorize(any(BankPaymentRequest.class)))
-        .thenReturn(BankPaymentResponse.builder().authorized(false).authorization_code("unauth").build());
+        .thenReturn(BankPaymentResponse.builder().authorized(false).authorizationCode("unauth").build());
 
     String body = "{\n" +
         "  \"card_number\": \"2222405343248878\",\n" +

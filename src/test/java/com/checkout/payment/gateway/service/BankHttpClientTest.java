@@ -39,15 +39,15 @@ class BankHttpClientTest {
 
     BankHttpClient client = new BankHttpClient(rt, baseUrl);
     BankPaymentResponse resp = client.authorize(BankPaymentRequest.builder()
-        .card_number("4242424242424242")
-        .expiry_date("01/2030")
+        .cardNumber("4242424242424242")
+        .expiryDate("01/2030")
         .currency("USD")
         .amount(50)
         .cvv("123")
         .build());
 
     assertThat(resp.authorized()).isFalse();
-    assertThat(resp.authorization_code()).isEqualTo("def");
+    assertThat(resp.authorizationCode()).isEqualTo("def");
     server.verify();
   }
 
@@ -66,15 +66,15 @@ class BankHttpClientTest {
 
     BankHttpClient client = new BankHttpClient(rt, baseUrl);
     BankPaymentResponse resp = client.authorize(BankPaymentRequest.builder()
-        .card_number("4242424242424241")
-        .expiry_date("12/2030")
+        .cardNumber("4242424242424241")
+        .expiryDate("12/2030")
         .currency("USD")
         .amount(100)
         .cvv("123")
         .build());
 
     assertThat(resp.authorized()).isTrue();
-    assertThat(resp.authorization_code()).isEqualTo("abc");
+    assertThat(resp.authorizationCode()).isEqualTo("abc");
     server.verify();
   }
 
@@ -90,8 +90,8 @@ class BankHttpClientTest {
 
     BankHttpClient client = new BankHttpClient(rt, baseUrl);
     assertThatThrownBy(() -> client.authorize(BankPaymentRequest.builder()
-        .card_number("4242424242424241")
-        .expiry_date("12/2030")
+        .cardNumber("4242424242424241")
+        .expiryDate("12/2030")
         .currency("USD")
         .amount(100)
         .cvv("123")
@@ -110,8 +110,8 @@ class BankHttpClientTest {
     BankHttpClient client = new BankHttpClient(rt, baseUrl);
 
     assertThatThrownBy(() -> client.authorize(BankPaymentRequest.builder()
-        .card_number("4242424242424241")
-        .expiry_date("12/2030")
+        .cardNumber("4242424242424241")
+        .expiryDate("12/2030")
         .currency("USD")
         .amount(100)
         .cvv("123")

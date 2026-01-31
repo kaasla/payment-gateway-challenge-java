@@ -55,8 +55,8 @@ public class PaymentGatewayService {
     }
 
     var bankReq = BankPaymentRequest.builder()
-        .card_number(paymentRequest.getCardNumber())
-        .expiry_date(paymentRequest.getExpiryDate())
+        .cardNumber(paymentRequest.getCardNumber())
+        .expiryDate(paymentRequest.getExpiryDate())
         .currency(paymentRequest.getCurrency())
         .amount(paymentRequest.getAmount())
         .cvv(paymentRequest.getCvv())

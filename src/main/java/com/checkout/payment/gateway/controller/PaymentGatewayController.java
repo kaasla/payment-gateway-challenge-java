@@ -7,6 +7,7 @@ import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.RejectionResponse;
 import com.checkout.payment.gateway.service.PaymentGatewayService;
 import java.util.UUID;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +24,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequestMapping("/api/payments")
+@Tag(name = "Payments", description = "Process and retrieve payments")
 public class PaymentGatewayController {
 
   private final PaymentGatewayService paymentGatewayService;
@@ -35,6 +37,8 @@ public class PaymentGatewayController {
   @Operation(summary = "Retrieve a payment by ID")
   @ApiResponse(responseCode = "200", description = "Payment found",
       content = @Content(schema = @Schema(implementation = GetPaymentResponse.class)))
+  @ApiResponse(responseCode = "400", description = "Bad request",
+      content = @Content(schema = @Schema(implementation = RejectionResponse.class)))
   @ApiResponse(responseCode = "404", description = "Payment not found",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(responseCode = "500", description = "Internal server error",

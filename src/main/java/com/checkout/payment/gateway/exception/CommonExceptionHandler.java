@@ -9,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +31,24 @@ public class CommonExceptionHandler {
         HttpStatus.BAD_REQUEST);
   }
 
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<RejectionResponse> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+    LOG.warn("Malformed JSON request");
+    return new ResponseEntity<>(
+        RejectionResponse.builder().status("Rejected").errors(List.of("Malformed JSON request")).build(),
+        HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<RejectionResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    String field = ex.getName();
+    LOG.warn("Type mismatch for parameter: {}", field);
+    String message = field + ": invalid value";
+    return new ResponseEntity<>(
+        RejectionResponse.builder().status("Rejected").errors(List.of(message)).build(),
+        HttpStatus.BAD_REQUEST);
+  }
+
   @ExceptionHandler(PaymentRejectedException.class)
   public ResponseEntity<RejectionResponse> handlePaymentRejected(PaymentRejectedException ex) {
     LOG.warn("Payment rejected with {} validation error(s)", ex.getErrors().size());
@@ -41,6 +62,12 @@ public class CommonExceptionHandler {
     LOG.warn("Resource not found");
     return new ResponseEntity<>(new ErrorResponse("Page not found"),
         HttpStatus.NOT_FOUND);
+  }
+
+  @ExceptionHandler(NoHandlerFoundException.class)
+  public ResponseEntity<ErrorResponse> handleNoHandler(NoHandlerFoundException ex) {
+    LOG.warn("No handler found for path");
+    return new ResponseEntity<>(new ErrorResponse("Page not found"), HttpStatus.NOT_FOUND);
   }
 
   @ExceptionHandler(AcquiringBankUnavailableException.class)

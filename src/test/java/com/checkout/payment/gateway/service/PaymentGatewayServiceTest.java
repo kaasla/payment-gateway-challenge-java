@@ -68,7 +68,7 @@ class PaymentGatewayServiceTest {
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());
     when(bankClient.authorize(any())).thenReturn(BankPaymentResponse.builder()
         .authorized(true)
-        .authorization_code("auth")
+        .authorizationCode("auth")
         .build());
 
     PostPaymentResponse resp = service.processPayment(req);
@@ -87,7 +87,7 @@ class PaymentGatewayServiceTest {
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());
     when(bankClient.authorize(any())).thenReturn(BankPaymentResponse.builder()
         .authorized(false)
-        .authorization_code("unauth")
+        .authorizationCode("unauth")
         .build());
 
     PostPaymentResponse resp = service.processPayment(req);
@@ -101,7 +101,7 @@ class PaymentGatewayServiceTest {
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());
     when(bankClient.authorize(any())).thenReturn(BankPaymentResponse.builder()
         .authorized(false)
-        .authorization_code("x")
+        .authorizationCode("x")
         .build());
 
     PostPaymentResponse resp = service.processPayment(req);
