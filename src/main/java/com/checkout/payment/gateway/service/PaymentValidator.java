@@ -4,35 +4,25 @@ import com.checkout.payment.gateway.model.PostPaymentRequest;
 import java.time.Clock;
 import java.time.YearMonth;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PaymentValidator {
 
-  private final Clock clock;
-  private final Set<String> allowedCurrencies;
+  private static final Set<String> ALLOWED_CURRENCIES = Set.of("USD", "EUR", "GBP");
 
-  public PaymentValidator(
-      Clock clock,
-      @Value("${gateway.payments.allowed-currencies:USD,EUR,GBP}") String allowedCurrencies) {
+  private final Clock clock;
+
+  public PaymentValidator(Clock clock) {
     this.clock = clock;
-    this.allowedCurrencies = Arrays.stream(allowedCurrencies.split(","))
-        .map(String::trim)
-        .filter(s -> !s.isEmpty())
-        .map(s -> s.toUpperCase(Locale.ROOT))
-        .collect(Collectors.toUnmodifiableSet());
   }
 
   public List<String> validate(PostPaymentRequest request) {
     List<String> errors = new ArrayList<>();
 
-    // Expiry month+year must be in the future
     YearMonth now = YearMonth.now(clock);
     try {
       YearMonth expiry = YearMonth.of(request.getExpiryYear(), request.getExpiryMonth());
@@ -43,13 +33,11 @@ public class PaymentValidator {
       errors.add("Invalid expiry month/year");
     }
 
-    // Currency must be in whitelist (≤ 3 codes)
     String currency = request.getCurrency() == null ? "" : request.getCurrency().toUpperCase(Locale.ROOT);
-    if (!allowedCurrencies.contains(currency)) {
-      errors.add("Currency must be one of: " + String.join(", ", allowedCurrencies));
+    if (!ALLOWED_CURRENCIES.contains(currency)) {
+      errors.add("Currency must be one of: USD, EUR, GBP");
     }
 
-    // Amount must be > 0 (defense in depth; also enforced by @Positive)
     if (request.getAmount() <= 0) {
       errors.add("Amount must be greater than 0");
     }
@@ -57,4 +45,3 @@ public class PaymentValidator {
     return errors;
   }
 }
-

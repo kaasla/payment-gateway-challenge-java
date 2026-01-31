@@ -20,7 +20,7 @@ class PaymentValidatorTest {
   void setup() {
     // Fix time to 2025-01-15 for deterministic tests
     fixedClock = Clock.fixed(Instant.parse("2025-01-15T12:00:00Z"), ZoneId.of("UTC"));
-    validator = new PaymentValidator(fixedClock, "USD,EUR,GBP");
+    validator = new PaymentValidator(fixedClock);
   }
 
   private PostPaymentRequest.PostPaymentRequestBuilder validRequest() {
@@ -89,4 +89,3 @@ class PaymentValidatorTest {
     assertThat(errors).hasSizeGreaterThanOrEqualTo(3);
   }
 }
-

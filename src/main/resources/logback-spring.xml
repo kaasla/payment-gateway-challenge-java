@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Production/dev profile: structured, key=value style logs to stdout -->
+  <springProfile name="!test">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>
+          ts=%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%-5p corr=%X{correlation_id:-} payment_id=%X{payment_id:-} thread=%thread logger=%logger{36} msg=%msg%n
+        </pattern>
+      </encoder>
+    </appender>
+
+    <!-- Keep Spring at INFO to avoid noisy DEBUG logs by default -->
+    <logger name="org.springframework" level="INFO"/>
+
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+
+  <!-- Test profile: lightweight, readable format for local test output -->
+  <springProfile name="test">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>%d{HH:mm:ss.SSS} %-5p %logger{36} - %msg%n</pattern>
+      </encoder>
+    </appender>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+</configuration>

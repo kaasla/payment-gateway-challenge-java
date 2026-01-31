@@ -30,7 +30,8 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
       filterChain.doFilter(request, response);
     } finally {
       MDC.remove(MDC_KEY);
+      // Clear any request-scoped MDC keys we may set elsewhere (e.g., payment_id)
+      MDC.remove("payment_id");
     }
   }
 }
-

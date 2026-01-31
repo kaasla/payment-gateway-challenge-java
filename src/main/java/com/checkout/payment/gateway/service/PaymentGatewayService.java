@@ -9,6 +9,7 @@ import com.checkout.payment.gateway.repository.PaymentsRepository;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -58,6 +59,7 @@ public class PaymentGatewayService {
 
     int last4 = extractLast4(paymentRequest.getCardNumber());
     var id = UUID.randomUUID();
+    MDC.put("payment_id", id.toString());
     var response = PostPaymentResponse.builder()
         .id(id)
         .status(status)
