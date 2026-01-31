@@ -1,8 +1,10 @@
 package com.checkout.payment.gateway.controller;
 
+import com.checkout.payment.gateway.model.ErrorResponse;
+import com.checkout.payment.gateway.model.GetPaymentResponse;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
-import com.checkout.payment.gateway.model.GetPaymentResponse;
+import com.checkout.payment.gateway.model.RejectionResponse;
 import com.checkout.payment.gateway.service.PaymentGatewayService;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -33,7 +35,10 @@ public class PaymentGatewayController {
   @Operation(summary = "Retrieve a payment by ID")
   @ApiResponse(responseCode = "200", description = "Payment found",
       content = @Content(schema = @Schema(implementation = GetPaymentResponse.class)))
-  @ApiResponse(responseCode = "404", description = "Payment not found")
+  @ApiResponse(responseCode = "404", description = "Payment not found",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(responseCode = "500", description = "Internal server error",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   public ResponseEntity<GetPaymentResponse> getPostPaymentEventById(@PathVariable UUID id) {
     return new ResponseEntity<>(paymentGatewayService.getPaymentById(id), HttpStatus.OK);
   }
@@ -42,8 +47,12 @@ public class PaymentGatewayController {
   @Operation(summary = "Process a payment", description = "Validate, authorize via bank, persist and return payment summary")
   @ApiResponse(responseCode = "201", description = "Payment processed",
       content = @Content(schema = @Schema(implementation = PostPaymentResponse.class)))
-  @ApiResponse(responseCode = "400", description = "Payment rejected (validation)")
-  @ApiResponse(responseCode = "503", description = "Bank unavailable")
+  @ApiResponse(responseCode = "400", description = "Payment rejected (validation)",
+      content = @Content(schema = @Schema(implementation = RejectionResponse.class)))
+  @ApiResponse(responseCode = "503", description = "Bank unavailable",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(responseCode = "500", description = "Internal server error",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   public ResponseEntity<PostPaymentResponse> processPayment(@Valid @RequestBody PostPaymentRequest request) {
     return new ResponseEntity<>(paymentGatewayService.processPayment(request), HttpStatus.CREATED);
   }
