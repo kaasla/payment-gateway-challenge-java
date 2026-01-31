@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @ControllerAdvice
-public class CommonExceptionHandler {
+public class GlobalExceptionHandler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CommonExceptionHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<RejectionResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
