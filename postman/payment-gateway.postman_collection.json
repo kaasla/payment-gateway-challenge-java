@@ -1,0 +1,169 @@
+{
+  "info": {
+    "name": "Payment Gateway",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for the Payment Gateway API"
+  },
+  "item": [
+    {
+      "name": "Process Payment — Authorized (odd)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-API-Key", "value": "{{apiKey}}" },
+          { "key": "X-Correlation-Id", "value": "demo-{{timestamp}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api", "payments"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"card_number\": \"2222405343248877\",\n  \"expiry_month\": 12,\n  \"expiry_year\": 2030,\n  \"currency\": \"USD\",\n  \"amount\": 1050,\n  \"cvv\": \"123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+              "var json = pm.response.json();",
+              "pm.test('Authorized', function () { pm.expect(json.status).to.eql('Authorized'); });",
+              "if (json.id) { pm.collectionVariables.set('paymentId', json.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Process Payment — Declined (even)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api", "payments"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"card_number\": \"2222405343248878\",\n  \"expiry_month\": 12,\n  \"expiry_year\": 2030,\n  \"currency\": \"USD\",\n  \"amount\": 1050,\n  \"cvv\": \"123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Declined', function () { pm.expect(pm.response.json().status).to.eql('Declined'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Process Payment — Bank Unavailable (last digit 0)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api", "payments"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"card_number\": \"2222405343248870\",\n  \"expiry_month\": 12,\n  \"expiry_year\": 2030,\n  \"currency\": \"USD\",\n  \"amount\": 100,\n  \"cvv\": \"123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 503', function () { pm.response.to.have.status(503); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Process Payment — Validation Error (400 Rejected)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api", "payments"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"card_number\": \"123\",\n  \"expiry_month\": 0,\n  \"expiry_year\": 2020,\n  \"currency\": \"SEK\",\n  \"amount\": 0,\n  \"cvv\": \"12\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', function () { pm.response.to.have.status(400); });",
+              "pm.test('Rejected status', function () { pm.expect(pm.response.json().status).to.eql('Rejected'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Retrieve Payment — By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "{{paymentId}}"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Id matches saved paymentId', function () { pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('paymentId')); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Retrieve Payment — Not Found (404)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-API-Key", "value": "{{apiKey}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/payments/00000000-0000-4000-8000-000000000000", "host": ["{{baseUrl}}"], "path": ["api", "payments", "00000000-0000-4000-8000-000000000000"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 404', function () { pm.response.to.have.status(404); });",
+              "pm.test('Page not found message', function () { pm.expect(pm.response.json().message).to.eql('Page not found'); });"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8090" },
+    { "key": "apiKey", "value": "test-key" },
+    { "key": "timestamp", "value": "{{$timestamp}}" }
+  ]
+}
+
