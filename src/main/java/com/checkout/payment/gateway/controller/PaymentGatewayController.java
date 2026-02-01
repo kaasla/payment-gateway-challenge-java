@@ -24,7 +24,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/v1/payments")
 @SecurityRequirement(name = "ApiKeyAuth")
 @Tag(name = "Payments", description = "Process and retrieve payments")
 public class PaymentGatewayController {

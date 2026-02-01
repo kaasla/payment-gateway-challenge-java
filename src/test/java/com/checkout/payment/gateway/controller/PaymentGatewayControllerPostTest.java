@@ -47,7 +47,7 @@ class PaymentGatewayControllerPostTest {
         "  \"cvv\": \"123\"\n" +
         "}";
 
-    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
+    mvc.perform(post("/api/v1/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.status").value("Authorized"))
         .andExpect(jsonPath("$.cardNumberLastFour").value(8877));
@@ -68,7 +68,7 @@ class PaymentGatewayControllerPostTest {
         "  \"cvv\": \"123\"\n" +
         "}";
 
-    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
+    mvc.perform(post("/api/v1/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.status").value("Declined"))
         .andExpect(jsonPath("$.cardNumberLastFour").value(8878));
@@ -87,7 +87,7 @@ class PaymentGatewayControllerPostTest {
         "  \"cvv\": \"12\"\n" +
         "}";
 
-    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
+    mvc.perform(post("/api/v1/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value("Rejected"))
         .andExpect(jsonPath("$.errors").isArray());
@@ -108,7 +108,7 @@ class PaymentGatewayControllerPostTest {
         "  \"cvv\": \"123\"\n" +
         "}";
 
-    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
+    mvc.perform(post("/api/v1/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.message").value("Payment processor unavailable, retry later"));
   }

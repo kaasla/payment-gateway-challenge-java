@@ -21,8 +21,8 @@ This service exposes a minimal Payment Gateway API that validates card payments,
 ## Architecture & Project Structure
 
 Runtime flow
-- POST `/api/payments`: validate request → call bank simulator → map authorized/declined status → persist summary → return status with summary.
-- GET `/api/payments/{id}`: fetch persisted summary → return 200 or 404.
+- POST `/api/v1/payments`: validate request → call bank simulator → map authorized/declined status → persist summary → return status with summary.
+- GET `/api/v1/payments/{id}`: fetch persisted summary → return 200 or 404.
 
 Packages
 - controller/ — HTTP layer (`PaymentGatewayController`).
@@ -134,13 +134,13 @@ Bank unavailable (card_number ends with 0) → 503 Service Unavailable
 
 ## API
 
-Base path: `/api/payments`
+Base path: `/api/v1/payments`
 
 Headers
 - `X-API-Key` (required) — API key authenticating the caller.
 - `X-Correlation-Id` (optional) — used to correlate logs end‑to‑end.
 
-### POST /api/payments
+### POST /api/v1/payments
 Process a payment (authorize with bank) and persist a safe summary.
 
 Request body
@@ -187,7 +187,7 @@ Responses
 { "message": "Internal server error" }
 ```
 
-### GET /api/payments/{id}
+### GET /api/v1/payments/{id}
 Retrieve a previously processed payment summary.
 
 Responses
@@ -287,7 +287,7 @@ docker compose up bank_simulator
 
 POST Authorized (odd-ending PAN)
 ```
-curl -s -X POST http://localhost:8090/api/payments \
+curl -s -X POST http://localhost:8090/api/v1/payments \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: test-key' \
   -H 'X-Correlation-Id: demo-123' \
@@ -437,7 +437,7 @@ Response (400)
 Full Flow Example (Create + Retrieve)
 ```
 # 1) Create (Authorized example)
-CREATE=$(curl -s -X POST http://localhost:8090/api/payments \
+CREATE=$(curl -s -X POST http://localhost:8090/api/v1/payments \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: test-key' \
   -d '{"card_number":"2222405343248877","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":1050,"cvv":"123"}')
@@ -446,7 +446,7 @@ echo "$CREATE"
 ID=$(echo "$CREATE" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
 
 # 2) Retrieve
-curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/payments/$ID
+curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/v1/payments/$ID
 ```
 Sample Create response
 ```

@@ -44,7 +44,7 @@ class PaymentGatewayControllerValidatorRejectedTest {
         "  \"cvv\": \"123\"\n" +
         "}";
 
-    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
+    mvc.perform(post("/api/v1/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value("Rejected"))
         .andExpect(jsonPath("$.errors").isArray())

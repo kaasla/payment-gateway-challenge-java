@@ -43,7 +43,7 @@ class PaymentGatewayControllerTest {
 
     paymentsRepository.add(payment);
 
-    mvc.perform(MockMvcRequestBuilders.get("/api/payments/" + payment.getId()).header("X-API-Key","test-key"))
+    mvc.perform(MockMvcRequestBuilders.get("/api/v1/payments/" + payment.getId()).header("X-API-Key","test-key"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value(payment.getStatus().getName()))
         .andExpect(jsonPath("$.cardNumberLastFour").value(payment.getCardNumberLastFour()))
@@ -56,7 +56,7 @@ class PaymentGatewayControllerTest {
   @Test
   @DisplayName("GET unknown id → 404 with {message: 'Page not found'}")
   void whenPaymentWithIdDoesNotExistThen404IsReturned() throws Exception {
-    mvc.perform(MockMvcRequestBuilders.get("/api/payments/" + UUID.randomUUID()).header("X-API-Key","test-key"))
+    mvc.perform(MockMvcRequestBuilders.get("/api/v1/payments/" + UUID.randomUUID()).header("X-API-Key","test-key"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.message").value("Page not found"));
   }
@@ -64,7 +64,7 @@ class PaymentGatewayControllerTest {
   @Test
   @DisplayName("GET with invalid UUID → 400 Rejected (type mismatch)")
   void whenPaymentIdIsInvalidUuidThen400IsReturned() throws Exception {
-    mvc.perform(MockMvcRequestBuilders.get("/api/payments/not-a-uuid").header("X-API-Key","test-key"))
+    mvc.perform(MockMvcRequestBuilders.get("/api/v1/payments/not-a-uuid").header("X-API-Key","test-key"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value("Rejected"));
   }

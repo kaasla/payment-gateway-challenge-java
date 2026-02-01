@@ -14,7 +14,7 @@
           { "key": "X-API-Key", "value": "{{apiKey}}" },
           { "key": "X-Correlation-Id", "value": "demo-{{timestamp}}" }
         ],
-        "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api", "payments"] },
+        "url": { "raw": "{{baseUrl}}/api/v1/payments", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments"] },
         "body": {
           "mode": "raw",
           "raw": "{\n  \"card_number\": \"2222405343248877\",\n  \"expiry_month\": 12,\n  \"expiry_year\": 2030,\n  \"currency\": \"USD\",\n  \"amount\": 1050,\n  \"cvv\": \"123\"\n}"
@@ -43,7 +43,7 @@
           { "key": "Content-Type", "value": "application/json" },
           { "key": "X-API-Key", "value": "{{apiKey}}" }
         ],
-        "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api", "payments"] },
+        "url": { "raw": "{{baseUrl}}/api/v1/payments", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments"] },
         "body": {
           "mode": "raw",
           "raw": "{\n  \"card_number\": \"2222405343248878\",\n  \"expiry_month\": 12,\n  \"expiry_year\": 2030,\n  \"currency\": \"USD\",\n  \"amount\": 1050,\n  \"cvv\": \"123\"\n}"
@@ -70,7 +70,7 @@
           { "key": "Content-Type", "value": "application/json" },
           { "key": "X-API-Key", "value": "{{apiKey}}" }
         ],
-        "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api", "payments"] },
+        "url": { "raw": "{{baseUrl}}/api/v1/payments", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments"] },
         "body": {
           "mode": "raw",
           "raw": "{\n  \"card_number\": \"2222405343248870\",\n  \"expiry_month\": 12,\n  \"expiry_year\": 2030,\n  \"currency\": \"USD\",\n  \"amount\": 100,\n  \"cvv\": \"123\"\n}"
@@ -96,7 +96,7 @@
           { "key": "Content-Type", "value": "application/json" },
           { "key": "X-API-Key", "value": "{{apiKey}}" }
         ],
-        "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api", "payments"] },
+        "url": { "raw": "{{baseUrl}}/api/v1/payments", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments"] },
         "body": {
           "mode": "raw",
           "raw": "{\n  \"card_number\": \"123\",\n  \"expiry_month\": 0,\n  \"expiry_year\": 2020,\n  \"currency\": \"SEK\",\n  \"amount\": 0,\n  \"cvv\": \"12\"\n}"
@@ -122,7 +122,7 @@
         "header": [
           { "key": "X-API-Key", "value": "{{apiKey}}" }
         ],
-        "url": { "raw": "{{baseUrl}}/api/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "{{paymentId}}"] }
+        "url": { "raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "{{paymentId}}"] }
       },
       "event": [
         {
@@ -144,7 +144,7 @@
         "header": [
           { "key": "X-API-Key", "value": "{{apiKey}}" }
         ],
-        "url": { "raw": "{{baseUrl}}/api/payments/00000000-0000-4000-8000-000000000000", "host": ["{{baseUrl}}"], "path": ["api", "payments", "00000000-0000-4000-8000-000000000000"] }
+        "url": { "raw": "{{baseUrl}}/api/v1/payments/00000000-0000-4000-8000-000000000000", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "00000000-0000-4000-8000-000000000000"] }
       },
       "event": [
         {
@@ -166,4 +166,3 @@
     { "key": "timestamp", "value": "{{$timestamp}}" }
   ]
 }
-

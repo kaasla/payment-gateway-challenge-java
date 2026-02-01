@@ -32,7 +32,7 @@ class ApiKeyAuthFilterTest {
         "  \"cvv\": \"123\"\n" +
         "}";
 
-    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).content(body))
+    mvc.perform(post("/api/v1/payments").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isUnauthorized());
   }
 
@@ -48,7 +48,7 @@ class ApiKeyAuthFilterTest {
         "  \"cvv\": \"123\"\n" +
         "}";
 
-    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","wrong-key").content(body))
+    mvc.perform(post("/api/v1/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","wrong-key").content(body))
         .andExpect(status().isForbidden());
   }
 }
