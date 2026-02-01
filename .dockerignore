@@ -1,0 +1,20 @@
+# Build output
+/build
+/.gradle
+/.idea
+/.vscode
+
+# VCS
+/.git
+/.gitignore
+
+# OS/editor
+.DS_Store
+*.iml
+
+# Node/npm (if any)
+node_modules
+
+# Logs
+*.log
+

@@ -11,13 +11,17 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import org.junit.jupiter.api.Tag;
+
 @SpringBootTest
 @AutoConfigureMockMvc
+@Tag("integration")
 class PaymentGatewayControllerTest {
 
   @Autowired
@@ -26,6 +30,8 @@ class PaymentGatewayControllerTest {
   PaymentsRepository paymentsRepository;
 
   @Test
+  @DisplayName("GET existing id → 200 with expected fields")
+  // Ensures retrieval returns 200 and the persisted summary fields
   void whenPaymentWithIdExistThenCorrectPaymentIsReturned() throws Exception {
     PostPaymentResponse payment = new PostPaymentResponse();
     payment.setId(UUID.randomUUID());
@@ -49,6 +55,8 @@ class PaymentGatewayControllerTest {
   }
 
   @Test
+  @DisplayName("GET unknown id → 404 with {message: 'Page not found'}")
+  // Ensures retrieval of non-existent id returns 404 with the standard error body
   void whenPaymentWithIdDoesNotExistThen404IsReturned() throws Exception {
     mvc.perform(MockMvcRequestBuilders.get("/api/payments/" + UUID.randomUUID()).header("X-API-Key","test-key"))
         .andExpect(status().isNotFound())

@@ -37,6 +37,7 @@ public class PaymentGatewayController {
 
   @GetMapping("/{id}")
   @Operation(summary = "Retrieve a payment by ID")
+  @SecurityRequirement(name = "ApiKeyAuth")
   @ApiResponse(responseCode = "200", description = "Payment found",
       content = @Content(schema = @Schema(implementation = GetPaymentResponse.class)))
   @ApiResponse(responseCode = "400", description = "Bad request",
@@ -51,6 +52,7 @@ public class PaymentGatewayController {
 
   @PostMapping
   @Operation(summary = "Process a payment", description = "Validate, authorize via bank, persist and return payment summary")
+  @SecurityRequirement(name = "ApiKeyAuth")
   @ApiResponse(responseCode = "201", description = "Payment processed",
       content = @Content(schema = @Schema(implementation = PostPaymentResponse.class)))
   @ApiResponse(responseCode = "400", description = "Payment rejected (validation)",

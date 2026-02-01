@@ -16,6 +16,7 @@ import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
 import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -50,6 +51,8 @@ class PaymentGatewayServiceTest {
   }
 
   @Test
+  @DisplayName("Validation errors -> PaymentRejectedException; no bank or persistence")
+  // Ensures service throws on validation errors and does not call bank or save
   void whenValidationFails_thenRejected_andNoBankCallOrPersist() {
     var req = validRequest().currency("SEK").build();
     when(paymentValidator.validate(req)).thenReturn(Collections.singletonList("bad currency"));
@@ -62,6 +65,8 @@ class PaymentGatewayServiceTest {
   }
 
   @Test
+  @DisplayName("Authorized path persists and returns status AUTHORIZED with last4")
+  // Ensures successful bank authorization persists and returns the correct summary
   void whenAuthorized_thenStatusAuthorized_andPersisted() {
     var req = validRequest().build();
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());
@@ -81,6 +86,8 @@ class PaymentGatewayServiceTest {
   }
 
   @Test
+  @DisplayName("Declined path persists and returns status DECLINED")
+  // Ensures declined authorization persists with status=Declined
   void whenDeclined_thenStatusDeclined_andPersisted() {
     var req = validRequest().build();
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());
@@ -95,6 +102,8 @@ class PaymentGatewayServiceTest {
   }
 
   @Test
+  @DisplayName("Non-digit PAN results in last4 fallback to 0")
+  // Ensures last4 computation is safe for non-digit PAN input
   void whenPanNonDigit_last4FallsBackToZero() {
     var req = validRequest().cardNumber("abcdEFGHijklMNOP").build();
     when(paymentValidator.validate(req)).thenReturn(Collections.emptyList());

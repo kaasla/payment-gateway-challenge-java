@@ -14,10 +14,10 @@ Key guarantees:
 - [Validation & Security](#validation--security)
 - [Logging & Observability](#logging--observability)
 - [Configuration](#configuration)
-- [Design Decisions & Trade-offs](#design-decisions--trade-offs)
+- [Testing](#testing)
+- [Design Decisions & Trade‑offs](#design-decisions--trade-offs)
 - [Examples (curl)](#examples-curl)
-- [Contributing & Conventions](#contributing--conventions)
-- [License](#license)
+ 
 
 ---
 
@@ -39,6 +39,76 @@ Packages
 External dependency
 - Bank simulator (Mountebank) runs via `docker-compose` and exposes `POST http://localhost:8080/payments`. Do not modify `imposters/`.
 
+### ASCII Architecture Diagram
+```
+  +-------------------+                 HTTP (JSON)                  +----------------------------+
+  |   Client / POS    |  ----------------------------------------->  |   Payment Gateway (8090)   |
+  | (Merchant System) |                                              |        Spring Boot         |
+  +-------------------+                                              +----------------------------+
+                                                                     |  +----------------------+  |
+                                                                     |  |   Controller (Web)   |  |
+                                                                     |  +----------+-----------+  |
+                                                                     |             |              |
+                                                                     |   +---------v----------+   |
+                                                                     |   | PaymentGatewaySvc  |   |
+                                                                     |   +----+----------+----+   |
+                                                                     |        |          |        |
+                                                                     |   +----v----+ +---v------+ |
+                           Logs (stdout key=value)                   |   |Validator| |Repository| |
+  +-------------------+   corr, payment_id, events                   |   +---------+ +----------+ |
+  |  Future           |                                              |                            |
+  |  Log Aggregator   | <--------------------------------------------+                            |
+  |  (ELK/Datadog/etc)|                                              |   +---------------------+  |
+  +-------------------+                                              |   |   BankService (HTTP)|  |
+                                                                     |   +----------+----------+  |
+                                                                     +---------------|-------------+
+                                                                                     |
+                                                                                     | POST /payments
+                                                                                     v
+                                                                     +----------------------------+
+                                                                     | Bank Simulator (Mountebank)|
+                                                                     |          :8080             |
+                                                                     +----------------------------+
+```
+
+### How the BankService is called (code path)
+```java
+// In PaymentGatewayService
+public PostPaymentResponse processPayment(PostPaymentRequest request) {
+  var errors = paymentValidator.validate(request);
+  if (!errors.isEmpty()) {
+    throw new PaymentRejectedException(errors); // bank NOT called on validation failures
+  }
+
+  var bankReq = BankPaymentRequest.builder()
+      .cardNumber(request.getCardNumber())
+      .expiryDate(request.getExpiryDate()) // MM/YYYY
+      .currency(request.getCurrency())
+      .amount(request.getAmount())
+      .cvv(request.getCvv())
+      .build();
+
+  var bankResp = bankService.requestAuthorization(bankReq); // ← outbound call
+  var status = bankResp.authorized() ? PaymentStatus.AUTHORIZED : PaymentStatus.DECLINED;
+  // ... persist summary and return 201
+}
+
+// In BankService
+public BankPaymentResponse requestAuthorization(BankPaymentRequest request) {
+  var response = restTemplate.postForEntity(baseUrl + "/payments", request, BankPaymentResponse.class);
+  var body = response.getBody();
+  if (body == null) throw new AcquiringBankUnavailableException("Empty bank response body");
+  return body; // authorized:true/false, authorizationCode
+}
+
+// Correlation propagation (configured once in ApplicationConfiguration)
+restTemplateBuilder.additionalInterceptors((req, body, exec) -> {
+  var corr = MDC.get("correlation_id");
+  if (corr != null && !corr.isBlank()) req.getHeaders().add("X-Correlation-Id", corr);
+  return exec.execute(req, body);
+});
+```
+
 ---
 
 ## Build, Run, Test
@@ -46,11 +116,20 @@ External dependency
 Prerequisites
 - JDK 17, Docker, curl (for examples).
 
-Quick start
+Run Modes
+
+1) Everything in Docker (quick demo)
+- Build and start both services: `docker compose up --build`
+- The gateway is available at `http://localhost:8090` and the simulator at `http://localhost:8080`.
+- Make API requests from your host (see Examples section).
+  - In Swagger UI, click "Authorize" (top right), select "ApiKeyAuth", enter `test-key` and press "Authorize".
+
+2) Hybrid (bank in Docker, app via Gradle)
 - Build: `./gradlew clean build`
-- Start bank simulator: `docker-compose up` (listens on 8080)
-- Run app: `./gradlew bootRun` (listens on 8090)
-- Tests: `./gradlew test`
+- Start bank simulator: `docker compose up bank_simulator`
+- Run app: `./gradlew bootRun`
+- Run tests: `./gradlew test` (unit) and `./gradlew integrationTest` (integration)
+  - In Swagger UI, click "Authorize" (top right), select "ApiKeyAuth", enter `test-key` and press "Authorize".
 
 OpenAPI/Swagger UI
 - http://localhost:8090/swagger-ui/index.html
@@ -170,6 +249,11 @@ Authentication
 - On success, the resolved `merchantId` is attached to the request for logging/analysis.
 - On failure, the gateway returns 401 (missing) or 403 (invalid) with `{ "message": "..." }`.
 
+Why an API key (importance)
+- Prevents anonymous access to payment endpoints; simple and effective for service-to-service access.
+- Enables per-merchant identification and auditing; pairs naturally with rate limits and quotas.
+- Easier developer onboarding for demos; can be replaced with OAuth2/JWT/mTLS in production.
+
 PII handling
 - PAN/CVV are never stored or returned; only last4 appears in responses/logs.
 - Central helper `CardDataUtil` masks PAN/CVV in any stringification.
@@ -210,6 +294,15 @@ Why a correlation id (in this service)
 - Faster support/debugging: The id is echoed in every response. A client can report it; operators grep one id to see the full timeline without sifting through unrelated logs.
 - Safe and lightweight: It contains no PII, is generated if missing, added to MDC automatically, and cleared at the request boundary so threads don’t leak state.
 
+Cross‑cutting filters (what they do)
+- CorrelationIdFilter
+  - Reads `X-Correlation-Id` (or generates one), saves it in MDC for logging, echoes it in the response header, and is cleared at request end.
+  - A RestTemplate interceptor forwards the same header on outbound bank calls, keeping logs stitchable across services.
+- ApiKeyAuthenticationFilter
+  - Enforces `X-API-Key` on all API routes (Swagger UI, API docs, and health endpoints are excluded; CORS preflight OPTIONS is allowed).
+  - Resolves the API key to a `merchantId` (from `gateway.security.api-keys`) and attaches it to the request for logging/auditing and future per‑merchant policy.
+  - Missing key → 401; invalid key → 403. In Swagger, use the “Authorize” button (ApiKeyAuth) to set the header.
+
 Health
 - `/actuator/health` for liveness/readiness basics. Add more endpoints as needed per environment.
 
@@ -233,6 +326,49 @@ Runtime defaults
 
 ---
 
+## Testing
+
+Scope & tools
+- Frameworks: JUnit 5, Spring Boot Test, Mockito, MockMvc, MockRestServiceServer for `RestTemplate`.
+- Separation:
+  - Unit tests (default): `./gradlew test`
+  - Integration tests (tagged @Tag("integration")): `./gradlew integrationTest`
+
+Unit tests (fast, no Spring context)
+- `PaymentValidatorTest` — expiry YearMonth rules, USD/EUR/GBP whitelist, amount > 0, aggregates multiple errors.
+- `BankServiceTest` — maps simulator responses: 200 authorized/unauthorized, 503, timeouts.
+- `CardDataUtilTest` — masks PAN/CVV, extracts last 4 safely.
+- `PaymentGatewayServiceTest` — orchestration with mocks: rejected path (no bank call), authorized/declined, last‑4 fallback.
+
+Integration tests (Spring context + MockMvc; tagged @Tag("integration"))
+- `PaymentGatewayControllerPostTest` — POST success (Authorized/Declined), 400 Rejected, 503 mapping.
+- `PaymentGatewayControllerTest` — GET happy path and 404 not found.
+- Notes:
+  - `@MockBean` is used for the bank client to avoid real HTTP calls.
+  - Include `X-API-Key` header in requests.
+
+E2E (manual or optional automated)
+- Start simulator: `docker-compose up`.
+- Run app: `./gradlew bootRun`.
+- Exercise flows with curl or Postman (see Examples section) to verify end‑to‑end behavior against the real simulator.
+- Optional: add a separate `@Tag("e2e")` test suite that hits the simulator; exclude from default `test` and run on demand or nightly.
+
+Testing guidance
+- Keep controllers thin; test business rules and mappings at the service/validator level.
+- Reserve E2E for contract checks with the simulator; rely on MockMvc and MockRestServiceServer for speed and determinism.
+
+### Test Inventory (short descriptions)
+- `service/PaymentValidatorTest` — Verifies expiry YearMonth rules, strict USD/EUR/GBP whitelist, positive amount, and multi‑error aggregation.
+- `service/BankServiceTest` — Ensures bank client maps simulator outcomes (authorized/unauthorized), and throws on 503/timeouts.
+- `service/CardDataUtilTest` — Checks PAN/CVV masking and last‑4 extraction (including non‑digit/short PAN cases).
+- `service/PaymentGatewayServiceTest` — Orchestrates validate → bank → persist; asserts rejected path skips bank, and authorized/declined are persisted with correct last‑4.
+- `controller/PaymentGatewayControllerPostTest` (@integration) — POST: Authorized/Declined (201), validation Rejected (400), bank unavailable (503); requires `X-API-Key`.
+- `controller/PaymentGatewayControllerValidatorRejectedTest` (@integration) — POST: cross‑field validator triggers 400 Rejected; bank client is not called; response has `X-Correlation-Id`.
+- `controller/PaymentGatewayControllerErrorAdviceTest` (@integration) — POST: unexpected runtime error returns 500 with generic error envelope.
+- `controller/PaymentGatewayControllerTest` (@integration) — GET: returns 200 for existing payment and 404 for unknown id with expected body.
+
+---
+
 ## Design Decisions & Trade‑offs
 
 - Simple, explicit API: POST/GET only; 201/200 success codes; predictable error envelopes.
@@ -253,6 +389,85 @@ Omissions (by intent for the exercise)
 
 ---
 
+## Production Hardening & Future Work
+
+The current implementation intentionally focuses on the assessment scope. In production, we would add:
+
+- API design & lifecycle
+  - Versioning (e.g., `/api/v1`) and explicit deprecation policy.
+  - Stronger auth: OAuth2 client credentials or signed JWTs; mTLS for service‑to‑service.
+  - Idempotency for POST (Idempotency‑Key header, short‑TTL store, conflict detection).
+  - Rate limiting/quotas per API key and tenant; pagination & filtering for listing endpoints.
+
+- Payments domain breadth
+  - Capture/void/refund flows in addition to authorize; partial captures/refunds.
+  - 3‑D Secure / SCA support; risk checks; AVS/CVV result handling.
+  - Webhooks/callbacks for async events; retry with exponential backoff and signing.
+  - Reconciliation/reporting endpoints; settlement summaries.
+
+- Resilience & reliability
+  - Retries only for transient faults (tight budget, jittered backoff), guarded by circuit breakers and bulkheads.
+  - Outbox pattern for external notifications; queue based async processing when needed.
+  - SLOs/SLIs (latency, availability, error rate) with alerting and runbooks.
+
+- Observability
+  - Metrics: `gateway.payments{result=*}`, bank call timers, 4xx/5xx rates; dashboards and alerts.
+  - Distributed tracing (trace/span ids) alongside correlation ids; synthetic checks.
+
+- Data protection & compliance
+  - Tokenization/vaulting: store tokens, not PAN; detokenization only in privileged, audited services.
+  - Encryption in transit (TLS everywhere) and at rest (DB/volumes with KMS); key rotation policies.
+  - Strict PCI DSS scope reduction and segmentation; least‑privilege access to data and logs; audit trails.
+  - Secrets management (e.g., Vault/SM/KMS); automatic rotation; never in source control.
+  - Data minimization & retention: configurable TTLs; GDPR/“right to be forgotten” workflows.
+
+- Platform & operations
+  - Blue/green or canary deployments; health‑based rollbacks; multi‑AZ/region for HA.
+  - WAF/DoS protections; IP allow‑listing for management endpoints; bot detection where relevant.
+  - Comprehensive penetration testing and threat modeling; secure SDLC gates.
+
+These measures, combined with the current validation, masking, and structured logging, ensure a secure and resilient gateway suitable for production workloads.
+
+---
+
+## Assumptions & Constraints
+
+- Currency support is fixed to USD/EUR/GBP by requirement (not configurable).
+- No persistent database is used; an in‑memory repository stores summaries for the process lifetime only.
+- Bank simulator is the single external dependency and must be reachable at `bank.base-url` (defaults to `http://localhost:8080`).
+- Time validation uses the system UTC clock (YearMonth now vs. card expiry); “current month” is not accepted.
+- No idempotency semantics are implemented; duplicate submissions may create multiple entries.
+- No retries/circuit breakers by design for this exercise; failures propagate deterministically.
+
+---
+
+## Troubleshooting & FAQ
+
+- 401 Unauthorized
+  - Missing `X-API-Key`. Add the header; for local dev use `test-key` (configurable).
+- 403 Forbidden
+  - Invalid `X-API-Key`. Verify configuration `gateway.security.api-keys` and the header value.
+- 400 Rejected
+  - Input failed validation (see errors[]). Common cases: PAN length, CVV length, lowercase currency, expiry not in the future.
+- 404 Not Found
+  - Wrong route (unknown path) or payment id does not exist.
+- 503 Service Unavailable
+  - Bank simulator returned 503 (card ending 0) or is down/unreachable. Ensure `docker compose up bank_simulator` is running.
+- Swagger UI not loading
+  - Verify app is on 8090 and bank simulator on 8080; check port collisions.
+- Logs hard to correlate
+  - Provide `X-Correlation-Id` in requests; the gateway will echo it and include it in log lines.
+
+FAQ
+- Why no retries?
+  - Simulator outcomes are deterministic; retries add complexity without benefit and can mislead clients.
+- Why no idempotency?
+  - Out of scope for the exercise. In production, add an Idempotency‑Key header and a short‑TTL store.
+- Why fixed currencies?
+  - The brief specifies validating against no more than three; enforcing USD/EUR/GBP avoids drift.
+
+---
+
 ## Examples (curl)
 
 Start simulator + app
@@ -261,7 +476,7 @@ docker-compose up -d
 ./gradlew bootRun
 ```
 
-POST Authorized (odd last digit)
+POST Authorized (odd-ending PAN)
 ```
 curl -s -X POST http://localhost:8090/api/payments \
   -H 'Content-Type: application/json' \
@@ -276,31 +491,205 @@ curl -s -X POST http://localhost:8090/api/payments \
         "cvv":"123"
       }'
 ```
+Response (201)
+```
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "Authorized",
+  "cardNumberLastFour": 8877,
+  "expiryMonth": 12,
+  "expiryYear": 2030,
+  "currency": "USD",
+  "amount": 1050
+}
+```
 
-POST Declined (even last digit)
+POST Declined (even-ending PAN)
 ```
 curl -s -X POST http://localhost:8090/api/payments \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: test-key' \
   -d '{"card_number":"2222405343248878","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":1050,"cvv":"123"}'
 ```
+Response (201)
+```
+{
+  "id": "b3b2bb4a-2c3a-45a9-8d2a-1b2c3d4e5f60",
+  "status": "Declined",
+  "cardNumberLastFour": 8878,
+  "expiryMonth": 12,
+  "expiryYear": 2030,
+  "currency": "USD",
+  "amount": 1050
+}
+```
+
+POST Validation Error (400 Rejected)
+```
+curl -s -X POST http://localhost:8090/api/payments \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: test-key' \
+  -d '{
+        "card_number":"123",             
+        "expiry_month":0,                 
+        "expiry_year":2020,               
+        "currency":"SEK",               
+        "amount":0,                       
+        "cvv":"12"                      
+      }'
+```
+Response (400)
+```
+{
+  "status": "Rejected",
+  "errors": [
+    "Card number must be 14-19 digits (numbers only).",
+    "Expiry month must be between 1 and 12.",
+    "Currency must be a 3-letter ISO code (e.g., USD).",
+    "Amount must be a positive integer in the minor currency unit (e.g., USD 10.50 -> 1050).",
+    "CVV must be 3-4 digits."
+  ]
+}
+```
+
+POST Bank Unavailable (503)
+```
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/payments \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: test-key' \
+  -d '{"card_number":"2222405343248870","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":100,"cvv":"123"}'
+# Expected: 503
+```
+Response body (503)
+```
+{ "message": "Payment processor unavailable, retry later" }
+```
 
 GET by id
 ```
 curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/payments/<id-from-post>
 ```
+Response (200)
+```
+{
+  "id": "<id-from-post>",
+  "status": "Authorized",
+  "cardNumberLastFour": 8877,
+  "expiryMonth": 12,
+  "expiryYear": 2030,
+  "currency": "USD",
+  "amount": 1050
+}
+```
+
+GET Not Found (404)
+```
+curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/payments/00000000-0000-4000-8000-000000000000
+```
+Response (404)
+```
+{ "message": "Page not found" }
+```
+
+Authorization errors
+- Missing API key (401)
+```
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/payments \
+  -H 'Content-Type: application/json' \
+  -d '{"card_number":"2222405343248877","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":1050,"cvv":"123"}'
+# Expected: 401
+```
+- Invalid API key (403)
+```
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/payments \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: wrong-key' \
+  -d '{"card_number":"2222405343248877","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":1050,"cvv":"123"}'
+# Expected: 403
+```
+
+Lowercase currency example (rejected by format)
+```
+curl -s -X POST http://localhost:8090/api/payments \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: test-key' \
+  -d '{"card_number":"2222405343248877","expiry_month":12,"expiry_year":2030,"currency":"usd","amount":1050,"cvv":"123"}'
+```
+Response (400)
+```
+{
+  "status": "Rejected",
+  "errors": [
+    "Currency must be a 3-letter ISO code (e.g., USD)."
+  ]
+}
+```
+
+Full Flow Example (Create + Retrieve)
+```
+# 1) Create (Authorized example)
+CREATE=$(curl -s -X POST http://localhost:8090/api/payments \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: test-key' \
+  -d '{"card_number":"2222405343248877","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":1050,"cvv":"123"}')
+echo "$CREATE"
+# Extract id
+ID=$(echo "$CREATE" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
+
+# 2) Retrieve
+curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/payments/$ID
+```
+Sample Create response
+```
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "Authorized",
+  "cardNumberLastFour": 8877,
+  "expiryMonth": 12,
+  "expiryYear": 2030,
+  "currency": "USD",
+  "amount": 1050
+}
+```
+Sample Retrieve response
+```
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "Authorized",
+  "cardNumberLastFour": 8877,
+  "expiryMonth": 12,
+  "expiryYear": 2030,
+  "currency": "USD",
+  "amount": 1050
+}
+```
 
 ---
 
-## Contributing & Conventions
+## Postman Examples
 
-- Java 17, Spring Boot 3, Lombok builders on DTOs for clarity.
-- Code style enforced by `.editorconfig` (2‑space indent, 100 cols).
-- Keep controllers thin; place validation/orchestration in `service/` and storage in `repository/`.
-- Never log sensitive data; use `CardDataUtil` for masking.
+Import the collection at `postman/payment-gateway.postman_collection.json` into Postman. It defines:
+
+- Variables
+  - `baseUrl` (default `http://localhost:8090`)
+  - `apiKey` (default `test-key` for local dev)
+
+- Requests (with tests)
+  - Process Payment — Authorized (odd)
+    - Expects 201, status `Authorized`; saves `paymentId` for retrieval.
+  - Process Payment — Declined (even)
+    - Expects 201, status `Declined`.
+  - Process Payment — Bank Unavailable (last digit 0)
+    - Expects 503.
+  - Process Payment — Validation Error (400 Rejected)
+    - Expects 400, status `Rejected`.
+  - Retrieve Payment — By ID
+    - Uses saved `paymentId`; expects 200 with matching id.
+  - Retrieve Payment — Not Found (404)
+    - Uses a fixed UUID; expects 404 with `{ "message": "Page not found" }`.
+
+Before running requests, start:
+- Bank simulator: `docker compose up bank_simulator`
+- Application: `./gradlew bootRun`
 
 ---
-
-## License
-
-This project is provided as part of a coding exercise template. Use and adapt as needed for evaluation purposes.

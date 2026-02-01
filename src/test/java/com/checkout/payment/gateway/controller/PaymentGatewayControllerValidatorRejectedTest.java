@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.checkout.payment.gateway.service.BankService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -17,8 +18,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.junit.jupiter.api.Tag;
+
 @SpringBootTest
 @AutoConfigureMockMvc
+@Tag("integration")
 class PaymentGatewayControllerValidatorRejectedTest {
 
   @Autowired
@@ -28,6 +32,8 @@ class PaymentGatewayControllerValidatorRejectedTest {
   private BankService bankService; // should not be called when validator rejects
 
   @Test
+  @DisplayName("POST rejected by cross-field validation → 400; bank not called")
+  // Ensures validator-only rejection returns 400 and avoids bank calls; header includes correlation id
   void postRejectedByValidator_returns400AndDoesNotCallBank() throws Exception {
     // Valid by Bean Validation but invalid by cross-field rules (expiry in past, currency not whitelisted)
     String body = "{\n" +

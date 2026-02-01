@@ -17,7 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
   public static final String HEADER = "X-API-Key";
-  private final Map<String, String> apiKeys; // key -> merchantId
+  private final Map<String, String> apiKeys;
 
   public ApiKeyAuthenticationFilter(String commaSeparatedKeys) {
     this.apiKeys = parseKeys(commaSeparatedKeys);
@@ -42,6 +42,9 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
     // Allow docs and health without API key
+    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+      return true;
+    }
     return path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") || path.startsWith("/actuator");
   }
 
@@ -55,12 +58,11 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     if (provided == null || provided.isBlank()) {
       throw new UnauthorizedException("Missing API key");
     }
-    String merchant = apiKeys.get(provided);
-    if (merchant == null) {
+    String merchantId = apiKeys.get(provided);
+    if (merchantId == null) {
       throw new ForbiddenException("Invalid API key");
     }
-    request.setAttribute("merchantId", merchant);
+    request.setAttribute("merchantId", merchantId);
     filterChain.doFilter(request, response);
   }
 }
-

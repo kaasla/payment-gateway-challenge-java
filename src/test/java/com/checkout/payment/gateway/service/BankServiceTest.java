@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.checkout.payment.gateway.exception.AcquiringBankUnavailableException;
 import com.checkout.payment.gateway.model.BankPaymentRequest;
 import com.checkout.payment.gateway.model.BankPaymentResponse;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.HttpMethod;
@@ -25,6 +26,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class BankServiceTest {
 
   @Test
+  @DisplayName("Bank returns 200 authorized=false → unauthorized mapping")
+  // Verifies a 200 response with authorized=false maps to Declined behavior
   void authorize_when200AuthorizedFalse_returnsUnauthorized() {
     RestTemplate rt = new RestTemplate();
     rt.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
@@ -52,6 +55,8 @@ class BankServiceTest {
   }
 
   @Test
+  @DisplayName("Bank returns 200 authorized=true → authorized mapping")
+  // Verifies a 200 response with authorized=true maps to Authorized behavior
   void authorize_when200AuthorizedTrue_returnsAuthorized() {
     RestTemplate rt = new RestTemplate();
     rt.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
@@ -79,6 +84,8 @@ class BankServiceTest {
   }
 
   @Test
+  @DisplayName("Bank returns 503 → AcquiringBankUnavailableException")
+  // Ensures 503 from bank raises the gateway's 503 exception type
   void authorize_when503_throwsBankUnavailable() {
     RestTemplate rt = new RestTemplate();
     rt.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
@@ -101,6 +108,8 @@ class BankServiceTest {
   }
 
   @Test
+  @DisplayName("HTTP timeout → AcquiringBankUnavailableException")
+  // Ensures client timeout is mapped to AcquiringBankUnavailableException
   void authorize_whenTimeout_throwsBankUnavailable() {
     RestTemplate rt = Mockito.mock(RestTemplate.class);
     String baseUrl = "http://localhost:9999";
