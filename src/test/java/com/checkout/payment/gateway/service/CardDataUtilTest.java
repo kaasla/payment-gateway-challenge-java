@@ -10,18 +10,15 @@ class CardDataUtilTest {
 
   @Test
   @DisplayName("maskPan hides all but last 4 digits (or **** when unavailable)")
-  // Ensures PAN masking never exposes full number; <4 chars or null becomes ****
   void maskPan_masksAllButLastFour() {
     assertThat(CardDataUtil.maskPan("4242424242424242")).isEqualTo("************4242");
     assertThat(CardDataUtil.maskPan("1234")).isEqualTo("1234");
-    // For <4 or null, expect generic ****
     assertThat(CardDataUtil.maskPan("123")).isEqualTo("****");
     assertThat(CardDataUtil.maskPan(null)).isEqualTo("****");
   }
 
   @Test
   @DisplayName("maskCvv always returns *** regardless of input")
-  // Ensures CVV is always masked to *** (never logged in clear)
   void maskCvv_alwaysMasks() {
     assertThat(CardDataUtil.maskCvv("123")).isEqualTo("***");
     assertThat(CardDataUtil.maskCvv("9876")).isEqualTo("***");
@@ -30,7 +27,6 @@ class CardDataUtilTest {
 
   @Test
   @DisplayName("extractLast4 returns digits or 0 for invalid/short PAN")
-  // Ensures safe last-4 extraction and fallback for invalid/non-digit input
   void extractLast4_handlesDigitsAndInvalids() {
     assertThat(CardDataUtil.extractLast4("0000000000004242")).isEqualTo(4242);
     assertThat(CardDataUtil.extractLast4("abcdEFGHijklMNOP")).isEqualTo(0);

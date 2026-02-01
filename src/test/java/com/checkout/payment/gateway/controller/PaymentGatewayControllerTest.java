@@ -31,7 +31,6 @@ class PaymentGatewayControllerTest {
 
   @Test
   @DisplayName("GET existing id → 200 with expected fields")
-  // Ensures retrieval returns 200 and the persisted summary fields
   void whenPaymentWithIdExistThenCorrectPaymentIsReturned() throws Exception {
     PostPaymentResponse payment = new PostPaymentResponse();
     payment.setId(UUID.randomUUID());
@@ -56,7 +55,6 @@ class PaymentGatewayControllerTest {
 
   @Test
   @DisplayName("GET unknown id → 404 with {message: 'Page not found'}")
-  // Ensures retrieval of non-existent id returns 404 with the standard error body
   void whenPaymentWithIdDoesNotExistThen404IsReturned() throws Exception {
     mvc.perform(MockMvcRequestBuilders.get("/api/payments/" + UUID.randomUUID()).header("X-API-Key","test-key"))
         .andExpect(status().isNotFound())
@@ -65,7 +63,6 @@ class PaymentGatewayControllerTest {
 
   @Test
   @DisplayName("GET with invalid UUID → 400 Rejected (type mismatch)")
-  // Ensures invalid UUID path param yields 400 with RejectionResponse
   void whenPaymentIdIsInvalidUuidThen400IsReturned() throws Exception {
     mvc.perform(MockMvcRequestBuilders.get("/api/payments/not-a-uuid").header("X-API-Key","test-key"))
         .andExpect(status().isBadRequest())

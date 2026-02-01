@@ -36,7 +36,6 @@ class PaymentValidatorTest {
 
   @Test
   @DisplayName("Expired card (past YearMonth) yields validation error")
-  // Ensures cards with expiry before current YearMonth are rejected
   void expiryInThePast_isError() {
     var req = validRequest()
         .expiryMonth(12)
@@ -49,7 +48,6 @@ class PaymentValidatorTest {
 
   @Test
   @DisplayName("Current month/year is not accepted (must be strictly future)")
-  // Ensures cards expiring in the current YearMonth are rejected
   void expiryInCurrentMonth_isError() {
     LocalDate fixed = LocalDate.now(fixedClock);
     var req = validRequest()
@@ -62,7 +60,6 @@ class PaymentValidatorTest {
 
   @Test
   @DisplayName("Future expiry passes validation")
-  // Ensures cards with a future YearMonth pass validation
   void expiryInFuture_isValid() {
     var req = validRequest().build();
     List<String> errors = validator.validate(req);
@@ -71,7 +68,6 @@ class PaymentValidatorTest {
 
   @Test
   @DisplayName("Currency outside USD/EUR/GBP is rejected")
-  // Ensures only USD/EUR/GBP currencies are accepted
   void currencyNotInWhitelist_isError() {
     var req = validRequest().currency("SEK").build();
     List<String> errors = validator.validate(req);
@@ -80,7 +76,6 @@ class PaymentValidatorTest {
 
   @Test
   @DisplayName("Zero amount is rejected (must be > 0)")
-  // Ensures amount must be a positive integer (minor units)
   void amountZero_isError() {
     var req = validRequest().amount(0).build();
     List<String> errors = validator.validate(req);
@@ -89,7 +84,6 @@ class PaymentValidatorTest {
 
   @Test
   @DisplayName("Multiple invalid fields return aggregated errors")
-  // Ensures all validation errors are returned together in one response
   void multipleErrors_areAggregated() {
     // Past expiry and bad currency and non-positive amount
     var req = validRequest()

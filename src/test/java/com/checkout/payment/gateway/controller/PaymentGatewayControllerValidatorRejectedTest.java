@@ -29,11 +29,10 @@ class PaymentGatewayControllerValidatorRejectedTest {
   private MockMvc mvc;
 
   @MockBean
-  private BankService bankService; // should not be called when validator rejects
+  private BankService bankService;
 
   @Test
   @DisplayName("POST rejected by cross-field validation → 400; bank not called")
-  // Ensures validator-only rejection returns 400 and avoids bank calls; header includes correlation id
   void postRejectedByValidator_returns400AndDoesNotCallBank() throws Exception {
     // Valid by Bean Validation but invalid by cross-field rules (expiry in past, currency not whitelisted)
     String body = "{\n" +

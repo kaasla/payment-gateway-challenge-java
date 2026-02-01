@@ -9,7 +9,6 @@ class PostPaymentRequestTest {
 
   @Test
   @DisplayName("PostPaymentRequest.toString masks PAN/CVV and formats expiry")
-  // Ensures DTO toString never leaks PAN/CVV and expiry_date is MM/YYYY
   void toString_masksSensitiveFields_andExpiryDateIsFormatted() {
     PostPaymentRequest req = PostPaymentRequest.builder()
         .cardNumber("4242424242424242")

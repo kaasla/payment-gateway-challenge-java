@@ -33,7 +33,6 @@ class PaymentGatewayControllerErrorAdviceTest {
 
   @Test
   @DisplayName("Unhandled runtime error in service → 500 Internal Server Error")
-  // Ensures generic exceptions are mapped to a 500 ErrorResponse
   void postUnhandledRuntimeException_returns500() throws Exception {
     when(paymentGatewayService.processPayment(any(PostPaymentRequest.class)))
         .thenThrow(new RuntimeException("boom"));

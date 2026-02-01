@@ -22,7 +22,6 @@ class ApiKeyAuthFilterTest {
 
   @Test
   @DisplayName("Missing API key → 401 Unauthorized")
-  // Ensures requests without X-API-Key are rejected with 401
   void missingApiKey_returns401() throws Exception {
     String body = "{\n" +
         "  \"card_number\": \"2222405343248877\",\n" +
@@ -39,7 +38,6 @@ class ApiKeyAuthFilterTest {
 
   @Test
   @DisplayName("Invalid API key → 403 Forbidden")
-  // Ensures requests with an invalid X-API-Key are rejected with 403
   void invalidApiKey_returns403() throws Exception {
     String body = "{\n" +
         "  \"card_number\": \"2222405343248877\",\n" +
@@ -54,4 +52,3 @@ class ApiKeyAuthFilterTest {
         .andExpect(status().isForbidden());
   }
 }
-
