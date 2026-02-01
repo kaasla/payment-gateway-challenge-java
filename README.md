@@ -261,6 +261,8 @@ Cross‑cutting filters (what they do)
 
 ---
 
+ 
+
 ## Configuration
 
 `src/main/resources/application.properties`
@@ -315,7 +317,7 @@ Response (201)
 
 POST Declined (even-ending PAN)
 ```
-curl -s -X POST http://localhost:8090/api/payments \
+curl -s -X POST http://localhost:8090/api/v1/payments \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: test-key' \
   -d '{"card_number":"2222405343248878","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":1050,"cvv":"123"}'
@@ -335,7 +337,7 @@ Response (201)
 
 POST Validation Error (400 Rejected)
 ```
-curl -s -X POST http://localhost:8090/api/payments \
+curl -s -X POST http://localhost:8090/api/v1/payments \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: test-key' \
   -d '{
@@ -354,7 +356,7 @@ Response (400)
   "errors": [
     "Card number must be 14-19 digits (numbers only).",
     "Expiry month must be between 1 and 12.",
-    "Currency must be a 3-letter ISO code (e.g., USD).",
+    "Currency must be one of: USD, EUR, GBP",
     "Amount must be a positive integer in the minor currency unit (e.g., USD 10.50 -> 1050).",
     "CVV must be 3-4 digits."
   ]
@@ -363,7 +365,7 @@ Response (400)
 
 POST Bank Unavailable (503)
 ```
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/payments \
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/v1/payments \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: test-key' \
   -d '{"card_number":"2222405343248870","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":100,"cvv":"123"}'
@@ -376,7 +378,7 @@ Response body (503)
 
 GET by id
 ```
-curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/payments/<id-from-post>
+curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/v1/payments/<id-from-post>
 ```
 Response (200)
 ```
@@ -393,7 +395,7 @@ Response (200)
 
 GET Not Found (404)
 ```
-curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/payments/00000000-0000-4000-8000-000000000000
+curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/v1/payments/00000000-0000-4000-8000-000000000000
 ```
 Response (404)
 ```
@@ -403,14 +405,14 @@ Response (404)
 Authorization errors
 - Missing API key (401)
 ```
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/payments \
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/v1/payments \
   -H 'Content-Type: application/json' \
   -d '{"card_number":"2222405343248877","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":1050,"cvv":"123"}'
 # Expected: 401
 ```
 - Invalid API key (403)
 ```
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/payments \
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/v1/payments \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: wrong-key' \
   -d '{"card_number":"2222405343248877","expiry_month":12,"expiry_year":2030,"currency":"USD","amount":1050,"cvv":"123"}'
@@ -419,7 +421,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8090/api/payme
 
 Lowercase currency example (rejected by format)
 ```
-curl -s -X POST http://localhost:8090/api/payments \
+curl -s -X POST http://localhost:8090/api/v1/payments \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: test-key' \
   -d '{"card_number":"2222405343248877","expiry_month":12,"expiry_year":2030,"currency":"usd","amount":1050,"cvv":"123"}'
@@ -540,6 +542,11 @@ The current implementation intentionally focuses on the assessment scope. In pro
 - Observability
   - Metrics: `gateway.payments{result=*}`, bank call timers, 4xx/5xx rates; dashboards and alerts.
   - Distributed tracing (trace/span ids) alongside correlation ids; synthetic checks.
+
+- Caching
+  - Cache GET-by-id summaries to reduce read latency and backend load; use cache-aside with `@Cacheable/@CachePut/@CacheEvict`.
+  - Do not cache side-effecting POST authorizations; instead implement idempotency keys for safe retries. Never store PII (PAN/CVV) in caches.
+  - Monitor hit rate, evictions, load latency, and failures; set sensible TTLs and invalidation on updates.
 
 - Data protection & compliance
   - PAN/CVV policy: never store CVV; avoid storing PAN.

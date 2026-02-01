@@ -1,7 +1,5 @@
 package com.checkout.payment.gateway.configuration;
 
-import com.checkout.payment.gateway.exception.ForbiddenException;
-import com.checkout.payment.gateway.exception.UnauthorizedException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,16 +10,29 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.slf4j.MDC;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.slf4j.MDC;
 
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
   public static final String HEADER = "X-API-Key";
   private final Map<String, String> apiKeys;
+  private final AuthenticationEntryPoint authenticationEntryPoint;
+  private final AccessDeniedHandler accessDeniedHandler;
 
-  public ApiKeyAuthenticationFilter(String commaSeparatedKeys) {
+  public ApiKeyAuthenticationFilter(String commaSeparatedKeys,
+      AuthenticationEntryPoint authenticationEntryPoint,
+      AccessDeniedHandler accessDeniedHandler) {
     this.apiKeys = parseKeys(commaSeparatedKeys);
+    this.authenticationEntryPoint = authenticationEntryPoint;
+    this.accessDeniedHandler = accessDeniedHandler;
   }
 
   private Map<String, String> parseKeys(String s) {
@@ -44,30 +55,40 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
-    // Allow docs and health without API key
     if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
       return true;
     }
-    return path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") || path.startsWith(
-        "/actuator");
+    return path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") || path.startsWith("/actuator");
   }
 
   @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
       FilterChain filterChain) throws ServletException, IOException {
     if (apiKeys.isEmpty()) {
-      throw new UnauthorizedException("No API keys configured");
+      // Misconfiguration, treat as unauthenticated
+      AuthenticationException ex = new InsufficientAuthenticationException("No API keys configured");
+      authenticationEntryPoint.commence(request, response, ex);
+      return;
     }
+
     String provided = request.getHeader(HEADER);
     if (provided == null || provided.isBlank()) {
-      throw new UnauthorizedException("Missing API key");
+      AuthenticationException ex = new InsufficientAuthenticationException("Missing API key");
+      authenticationEntryPoint.commence(request, response, ex);
+      return;
     }
+
     String merchantId = apiKeys.get(provided);
     if (merchantId == null) {
-      throw new ForbiddenException("Invalid API key");
+      accessDeniedHandler.handle(request, response, new AccessDeniedException("Invalid API key"));
+      return;
     }
+
     request.setAttribute("merchantId", merchantId);
     MDC.put("merchant_id", merchantId);
+    var auth = new UsernamePasswordAuthenticationToken(merchantId, provided,
+        java.util.List.of(new SimpleGrantedAuthority("ROLE_MERCHANT")));
+    SecurityContextHolder.getContext().setAuthentication(auth);
     filterChain.doFilter(request, response);
   }
 }
