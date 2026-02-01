@@ -10,9 +10,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
+import org.slf4j.MDC;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.MDC;
 
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
@@ -24,7 +25,9 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
   }
 
   private Map<String, String> parseKeys(String s) {
-    if (s == null || s.isBlank()) return Collections.emptyMap();
+    if (s == null || s.isBlank()) {
+      return Collections.emptyMap();
+    }
     Map<String, String> map = new HashMap<>();
     Stream.of(s.split(","))
         .map(String::trim)
@@ -45,7 +48,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
       return true;
     }
-    return path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") || path.startsWith("/actuator");
+    return path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") || path.startsWith(
+        "/actuator");
   }
 
   @Override
@@ -63,6 +67,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
       throw new ForbiddenException("Invalid API key");
     }
     request.setAttribute("merchantId", merchantId);
+    MDC.put("merchant_id", merchantId);
     filterChain.doFilter(request, response);
   }
 }

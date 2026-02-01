@@ -21,6 +21,7 @@ import static com.checkout.payment.gateway.enums.PaymentStatus.DECLINED;
 public class PaymentGatewayService {
 
   private static final Logger LOG = LoggerFactory.getLogger(PaymentGatewayService.class);
+  private static final String EVENT = "event";
 
   private final PaymentsRepository paymentsRepository;
   private final BankService bankService;
@@ -34,7 +35,7 @@ public class PaymentGatewayService {
   }
 
   public GetPaymentResponse getPaymentById(UUID id) {
-    LOG.debug("event=payment.lookup id={}", id);
+    LOG.debug("{}=payment.lookup id={}", EVENT, id);
     var stored = paymentsRepository.get(id)
         .orElseThrow(() -> new EventProcessingException("Invalid ID"));
     return GetPaymentResponse.builder()
@@ -49,12 +50,12 @@ public class PaymentGatewayService {
   }
 
   public PostPaymentResponse processPayment(PostPaymentRequest paymentRequest) {
-    LOG.info("event=payment.request.received currency={} amount={}",
-        paymentRequest.getCurrency(), paymentRequest.getAmount());
+    LOG.info("{}=payment.request.received currency={} amount={}",
+        EVENT, paymentRequest.getCurrency(), paymentRequest.getAmount());
 
     var errors = paymentValidator.validate(paymentRequest);
     if (!errors.isEmpty()) {
-      LOG.warn("event=payment.rejected errors={}", errors.size());
+      LOG.warn("{}=payment.rejected errors={}", EVENT, errors.size());
       throw new PaymentRejectedException(errors);
     }
 
@@ -87,8 +88,8 @@ public class PaymentGatewayService {
 
     paymentsRepository.add(response);
 
-    LOG.info("event=payment.completed payment_id={} status={} currency={} amount={} last4={}",
-        id, status.getName(), response.getCurrency(), response.getAmount(), last4);
+    LOG.info("{}=payment.completed payment_id={} status={} currency={} amount={} last4={}",
+        EVENT, id, status.getName(), response.getCurrency(), response.getAmount(), last4);
 
     return response;
   }

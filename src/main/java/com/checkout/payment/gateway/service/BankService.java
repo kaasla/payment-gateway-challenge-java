@@ -13,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 public class BankService {
 
   private static final Logger LOG = LoggerFactory.getLogger(BankService.class);
+  private static final String EVENT = "event";
 
   private final RestTemplate restTemplate;
   private final String baseUrl;
@@ -24,26 +25,26 @@ public class BankService {
   }
 
   public BankPaymentResponse requestAuthorization(BankPaymentRequest request) {
-    LOG.info("event=bank.call.started currency={} amount={}", request.currency(), request.amount());
+    LOG.info("{}=bank.call.started currency={} amount={}", EVENT, request.currency(), request.amount());
     try {
       ResponseEntity<BankPaymentResponse> response = restTemplate
           .postForEntity(baseUrl + "/payments", request, BankPaymentResponse.class);
       BankPaymentResponse body = response.getBody();
       boolean authorized = body != null && body.authorized();
-      LOG.info("event=bank.call.completed authorized={} status={}",
-          authorized, response.getStatusCode().value());
+      LOG.info("{}=bank.call.completed authorized={} status={}",
+          EVENT, authorized, response.getStatusCode().value());
       if (body == null) {
         throw new AcquiringBankUnavailableException("Empty bank response body");
       }
       return body;
     } catch (HttpStatusCodeException e) {
-      LOG.error("event=bank.call.failed status={}", e.getStatusCode().value());
+      LOG.error("{}=bank.call.failed status={}", EVENT, e.getStatusCode().value());
       if (e.getStatusCode().value() == 503) {
         throw new AcquiringBankUnavailableException("Bank returned 503", e);
       }
       throw e;
     } catch (ResourceAccessException e) {
-      LOG.error("event=bank.call.timeout");
+      LOG.error("{}=bank.call.timeout", EVENT);
       throw new AcquiringBankUnavailableException("Bank request timed out", e);
     }
   }
