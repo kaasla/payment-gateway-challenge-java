@@ -530,7 +530,6 @@ Test inventory (by class)
 The current implementation intentionally focuses on the assessment scope. In production, we would add:
 
 - API design & lifecycle
-  - Versioning (e.g., `/api/v1`).
   - Stronger auth: OAuth2 client credentials or signed JWTs; mTLS for service‑to‑service.
   - Idempotency for POST (Idempotency‑Key header, short‑TTL store, conflict detection).
   - Rate limiting/quotas per API key and tenant; pagination & filtering for listing endpoints.
