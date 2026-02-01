@@ -1,5 +1,6 @@
 package com.checkout.payment.gateway.exception;
 
+import com.checkout.payment.gateway.enums.PaymentStatus;
 import com.checkout.payment.gateway.model.ErrorResponse;
 import com.checkout.payment.gateway.model.RejectionResponse;
 import org.slf4j.Logger;
@@ -23,11 +24,11 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<RejectionResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
     List<String> errors = ex.getBindingResult().getFieldErrors().stream()
-        .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+        .map(fe -> fe.getDefaultMessage())
         .collect(Collectors.toList());
     LOG.warn("Validation failed: {} error(s)", errors.size());
     return new ResponseEntity<>(
-        RejectionResponse.builder().status("Rejected").errors(errors).build(),
+        RejectionResponse.builder().status(PaymentStatus.REJECTED).errors(errors).build(),
         HttpStatus.BAD_REQUEST);
   }
 
@@ -35,7 +36,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<RejectionResponse> handleMessageNotReadable(HttpMessageNotReadableException ex) {
     LOG.warn("Malformed JSON request");
     return new ResponseEntity<>(
-        RejectionResponse.builder().status("Rejected").errors(List.of("Malformed JSON request")).build(),
+        RejectionResponse.builder().status(PaymentStatus.REJECTED).errors(List.of("Malformed JSON request")).build(),
         HttpStatus.BAD_REQUEST);
   }
 
@@ -45,7 +46,7 @@ public class GlobalExceptionHandler {
     LOG.warn("Type mismatch for parameter: {}", field);
     String message = field + ": invalid value";
     return new ResponseEntity<>(
-        RejectionResponse.builder().status("Rejected").errors(List.of(message)).build(),
+        RejectionResponse.builder().status(PaymentStatus.REJECTED).errors(List.of(message)).build(),
         HttpStatus.BAD_REQUEST);
   }
 
@@ -53,7 +54,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<RejectionResponse> handlePaymentRejected(PaymentRejectedException ex) {
     LOG.warn("Payment rejected with {} validation error(s)", ex.getErrors().size());
     return new ResponseEntity<>(
-        RejectionResponse.builder().status("Rejected").errors(ex.getErrors()).build(),
+        RejectionResponse.builder().status(PaymentStatus.REJECTED).errors(ex.getErrors()).build(),
         HttpStatus.BAD_REQUEST);
   }
 
@@ -75,6 +76,18 @@ public class GlobalExceptionHandler {
     LOG.error("Bank unavailable", ex);
     return new ResponseEntity<>(new ErrorResponse("Payment processor unavailable, retry later"),
         HttpStatus.SERVICE_UNAVAILABLE);
+  }
+
+  @ExceptionHandler(UnauthorizedException.class)
+  public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
+    LOG.warn("Unauthorized: {}", ex.getMessage());
+    return new ResponseEntity<>(new ErrorResponse("Unauthorized"), HttpStatus.UNAUTHORIZED);
+  }
+
+  @ExceptionHandler(ForbiddenException.class)
+  public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+    LOG.warn("Forbidden: {}", ex.getMessage());
+    return new ResponseEntity<>(new ErrorResponse("Forbidden"), HttpStatus.FORBIDDEN);
   }
 
   @ExceptionHandler(Exception.class)

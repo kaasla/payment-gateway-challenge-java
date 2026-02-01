@@ -54,4 +54,19 @@ public class ApplicationConfiguration {
       @Value("${bank.base-url:http://localhost:8080}") String baseUrl) {
     return new BankService(restTemplate, baseUrl);
   }
+
+  @Bean
+  public ApiKeyAuthenticationFilter apiKeyAuthenticationFilter(
+      @Value("${gateway.security.api-keys:}") String apiKeys) {
+    return new ApiKeyAuthenticationFilter(apiKeys);
+  }
+
+  @Bean
+  public FilterRegistrationBean<ApiKeyAuthenticationFilter> apiKeyFilterRegistration(
+      ApiKeyAuthenticationFilter filter) {
+    FilterRegistrationBean<ApiKeyAuthenticationFilter> reg = new FilterRegistrationBean<>(filter);
+    reg.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
+    reg.addUrlPatterns("/*");
+    return reg;
+  }
 }

@@ -18,14 +18,14 @@ import lombok.NoArgsConstructor;
 public class PostPaymentRequest implements Serializable {
 
   @Schema(description = "Card number (14-19 digits)", example = "4242424242424242")
-  @NotBlank
-  @Pattern(regexp = "^\\d{14,19}$")
+  @NotBlank(message = "{validation.cardNumber.required}")
+  @Pattern(regexp = "^\\d{14,19}$", message = "{validation.cardNumber.digits}")
   @JsonProperty("card_number")
   private String cardNumber;
 
   @Schema(description = "Expiry month (1-12)", example = "12")
-  @Min(1)
-  @Max(12)
+  @Min(value = 1, message = "{validation.expiryMonth.range}")
+  @Max(value = 12, message = "{validation.expiryMonth.range}")
   @JsonProperty("expiry_month")
   private int expiryMonth;
 
@@ -34,17 +34,17 @@ public class PostPaymentRequest implements Serializable {
   private int expiryYear;
 
   @Schema(description = "ISO 4217 currency code (3 letters)", example = "USD")
-  @NotBlank
-  @Pattern(regexp = "^[A-Z]{3}$")
+  @NotBlank(message = "{validation.currency.required}")
+  @Pattern(regexp = "^[A-Z]{3}$", message = "{validation.currency.code}")
   private String currency;
 
   @Schema(description = "Amount in minor units", example = "1050")
-  @Positive
+  @Positive(message = "{validation.amount.positive}")
   private int amount;
 
   @Schema(description = "Card verification value (3-4 digits)", example = "123")
-  @NotBlank
-  @Pattern(regexp = "^\\d{3,4}$")
+  @NotBlank(message = "{validation.cvv.required}")
+  @Pattern(regexp = "^\\d{3,4}$", message = "{validation.cvv.digits}")
   private String cvv;
 
   @JsonProperty("expiry_date")

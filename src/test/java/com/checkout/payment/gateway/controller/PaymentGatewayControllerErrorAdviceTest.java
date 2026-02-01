@@ -41,7 +41,7 @@ class PaymentGatewayControllerErrorAdviceTest {
         "  \"cvv\": \"123\"\n" +
         "}";
 
-    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).content(body))
+    mvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).header("X-API-Key","test-key").content(body))
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.message").value("Internal server error"));
   }
