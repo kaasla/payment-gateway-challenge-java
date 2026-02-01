@@ -62,4 +62,13 @@ class PaymentGatewayControllerTest {
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.message").value("Page not found"));
   }
+
+  @Test
+  @DisplayName("GET with invalid UUID → 400 Rejected (type mismatch)")
+  // Ensures invalid UUID path param yields 400 with RejectionResponse
+  void whenPaymentIdIsInvalidUuidThen400IsReturned() throws Exception {
+    mvc.perform(MockMvcRequestBuilders.get("/api/payments/not-a-uuid").header("X-API-Key","test-key"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value("Rejected"));
+  }
 }
