@@ -153,7 +153,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('Status 404', function () { pm.response.to.have.status(404); });",
-              "pm.test('Page not found message', function () { pm.expect(pm.response.json().message).to.eql('Page not found'); });"
+              "pm.test('Payment not found message', function () { pm.expect(pm.response.json().message).to.eql('Payment not found'); });"
             ]
           }
         }

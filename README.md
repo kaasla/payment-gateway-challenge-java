@@ -192,7 +192,7 @@ Retrieve a previously processed payment summary.
 
 Responses
 - 200 OK — same shape as 201 above
-- 404 Not Found — `{ "message": "Page not found" }`
+- 404 Not Found — `{ "message": "Payment not found" }`
 - 400 Bad Request (bad id format) — `{"status":"Rejected","errors":["id: invalid value"]}`
 
 ---
@@ -399,7 +399,7 @@ curl -s -H 'X-API-Key: test-key' http://localhost:8090/api/v1/payments/00000000-
 ```
 Response (404)
 ```
-{ "message": "Page not found" }
+{ "message": "Payment not found" }
 ```
 
 Authorization errors
@@ -497,7 +497,7 @@ Import the collection at `postman/payment-gateway.postman_collection.json` into 
   - Retrieve Payment — By ID
     - Uses saved `paymentId`; expects 200 with matching id.
   - Retrieve Payment — Not Found (404)
-    - Uses a fixed UUID; expects 404 with `{ "message": "Page not found" }`.
+    - Uses a fixed UUID; expects 404 with `{ "message": "Payment not found" }`.
 
 Before running requests, start:
 - Bank simulator: `docker compose up bank_simulator`

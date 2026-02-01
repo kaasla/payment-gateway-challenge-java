@@ -61,14 +61,14 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(EventProcessingException.class)
   public ResponseEntity<ErrorResponse> handleException(EventProcessingException ex) {
     LOG.warn("Resource not found");
-    return new ResponseEntity<>(new ErrorResponse("Page not found"),
+    return new ResponseEntity<>(new ErrorResponse("Payment not found"),
         HttpStatus.NOT_FOUND);
   }
 
   @ExceptionHandler(NoHandlerFoundException.class)
   public ResponseEntity<ErrorResponse> handleNoHandler(NoHandlerFoundException ex) {
     LOG.warn("No handler found for path");
-    return new ResponseEntity<>(new ErrorResponse("Page not found"), HttpStatus.NOT_FOUND);
+    return new ResponseEntity<>(new ErrorResponse("Resource not found"), HttpStatus.NOT_FOUND);
   }
 
   @ExceptionHandler(AcquiringBankUnavailableException.class)

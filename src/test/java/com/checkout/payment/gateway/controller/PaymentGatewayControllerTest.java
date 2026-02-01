@@ -54,11 +54,11 @@ class PaymentGatewayControllerTest {
   }
 
   @Test
-  @DisplayName("GET unknown id → 404 with {message: 'Page not found'}")
+  @DisplayName("GET unknown id → 404 with {message: 'Payment not found'}")
   void whenPaymentWithIdDoesNotExistThen404IsReturned() throws Exception {
     mvc.perform(MockMvcRequestBuilders.get("/api/v1/payments/" + UUID.randomUUID()).header("X-API-Key","test-key"))
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.message").value("Page not found"));
+        .andExpect(jsonPath("$.message").value("Payment not found"));
   }
 
   @Test
