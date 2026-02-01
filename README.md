@@ -7,15 +7,13 @@ This service exposes a minimal Payment Gateway API that validates card payments,
 - [Build, Run, Test](#build-run-test)
 - [Bank Simulator Behavior](#bank-simulator-behavior)
 - [API](#api)
-- [Examples (curl)](#examples-curl)
-- [Postman Examples](#postman-examples)
 - [Validation & Security](#validation--security)
 - [Logging & Observability](#logging--observability)
 - [Configuration](#configuration)
+- [Examples (curl)](#examples-curl)
+- [Postman Examples](#postman-examples)
 - [Testing](#testing)
-- [Design Decisions & Trade‑offs](#design-decisions--trade-offs)
 - [Production Hardening & Future Work](#production-hardening--future-work)
-- [Assumptions & Constraints](#assumptions--constraints)
 - [Troubleshooting & FAQ](#troubleshooting--faq)
 
 ---
@@ -279,75 +277,6 @@ Cross‑cutting filters (what they do)
 Runtime defaults
 - RestTemplate connect/read timeouts configured via `ApplicationConfiguration` (tunable per environment).
 
----
-
-## Testing
-
-- Unit: `./gradlew test`
-- Integration (@Tag("integration")): `./gradlew integrationTest`
-- Manual E2E: start simulator (`docker compose up bank_simulator`), run app (`./gradlew bootRun`), then use curl/Postman.
-
-Test inventory (by class)
-- `service/PaymentValidatorTest` — expiry YearMonth must be future; USD/EUR/GBP only; amount > 0; aggregates errors.
-- `service/BankServiceTest` — simulator mapping: 200 authorized/unauthorized; 503 and HTTP timeouts map to `AcquiringBankUnavailableException`.
-- `service/CardDataUtilTest` — masks PAN/CVV correctly; last‑4 extraction safe for invalid/short PAN.
-- `service/PaymentGatewayServiceTest` — validation errors throw and skip bank/persist; authorized/declined persist with correct last‑4.
-- `model/PostPaymentRequestTest` — `toString()` never leaks PAN/CVV; `expiry_date` formatted as `MM/YYYY`.
-- `controller/ApiKeyAuthFilterTest` (@integration) — missing API key → 401; invalid API key → 403.
-- `controller/PaymentGatewayControllerPostTest` (@integration) — POST: 201 Authorized/Declined; 400 Rejected; 503 bank unavailable.
-- `controller/PaymentGatewayControllerValidatorRejectedTest` (@integration) — cross‑field validator triggers 400; bank not called; correlation header present.
-- `controller/PaymentGatewayControllerErrorAdviceTest` (@integration) — unexpected runtime error → 500 ErrorResponse.
-- `controller/PaymentGatewayControllerTest` (@integration) — GET: 200 for existing; 404 not found; invalid UUID → 400 Rejected.
----
-
-## Production Hardening & Future Work
-
-The current implementation intentionally focuses on the assessment scope. In production, we would add:
-
-- API design & lifecycle
-  - Versioning (e.g., `/api/v1`).
-  - Stronger auth: OAuth2 client credentials or signed JWTs; mTLS for service‑to‑service.
-  - Idempotency for POST (Idempotency‑Key header, short‑TTL store, conflict detection).
-  - Rate limiting/quotas per API key and tenant; pagination & filtering for listing endpoints.
-
-- Resilience & reliability
-  - Retries only for transient faults (tight budget, jittered backoff), guarded by circuit breakers and bulkheads.
-  - Outbox pattern for external notifications; queue based async processing when needed.
-
-- Observability
-  - Metrics: `gateway.payments{result=*}`, bank call timers, 4xx/5xx rates; dashboards and alerts.
-  - Distributed tracing (trace/span ids) alongside correlation ids; synthetic checks.
-
-- Data protection & compliance
-  - PAN/CVV policy: never store CVV; avoid storing PAN.
-  - Hashing/HMAC for comparisons/lookup.
-  - Encryption in transit (TLS everywhere) and at rest (DB/volumes with KMS).
-  - Secrets management (e.g., Vault/SM/KMS); automatic rotation; never in source control.
-  - Data minimization & retention: configurable TTLs; GDPR/“right to be forgotten” workflows.
-
-These measures, combined with the current validation, masking, and structured logging, ensure a secure and resilient gateway suitable for production workloads.
-
----
-
-## Troubleshooting & FAQ
-
-- 400 Rejected
-  - Input failed validation (see errors[]). Common cases: PAN length, CVV length, lowercase currency, expiry not in the future.
-- 401 Unauthorized
-  - Missing `X-API-Key`. Add the header; for local dev use `test-key` (configurable).
-- 403 Forbidden
-  - Invalid `X-API-Key`. Verify configuration `gateway.security.api-keys` and the header value.
-- 404 Not Found
-  - Wrong route (unknown path) or payment id does not exist.
-- 503 Service Unavailable
-  - Bank simulator returned 503 (card ending 0) or is down/unreachable. Ensure `docker compose up bank_simulator` is running.
-- Swagger UI not loading
-  - Verify app is on 8090 and bank simulator on 8080; check port collisions.
-- Logs hard to correlate
-  - Provide `X-Correlation-Id` in requests; the gateway will echo it and include it in log lines.
-
----
-
 ## Examples (curl)
 
 Start simulator + app
@@ -571,5 +500,73 @@ Import the collection at `postman/payment-gateway.postman_collection.json` into 
 Before running requests, start:
 - Bank simulator: `docker compose up bank_simulator`
 - Application: `./gradlew bootRun`
+
+---
+
+## Testing
+
+- Unit: `./gradlew test`
+- Integration (@Tag("integration")): `./gradlew integrationTest`
+- Manual E2E: start simulator (`docker compose up bank_simulator`), run app (`./gradlew bootRun`), then use curl/Postman.
+
+Test inventory (by class)
+- `service/PaymentValidatorTest` — expiry YearMonth must be future; USD/EUR/GBP only; amount > 0; aggregates errors.
+- `service/BankServiceTest` — simulator mapping: 200 authorized/unauthorized; 503 and HTTP timeouts map to `AcquiringBankUnavailableException`.
+- `service/CardDataUtilTest` — masks PAN/CVV correctly; last‑4 extraction safe for invalid/short PAN.
+- `service/PaymentGatewayServiceTest` — validation errors throw and skip bank/persist; authorized/declined persist with correct last‑4.
+- `model/PostPaymentRequestTest` — `toString()` never leaks PAN/CVV; `expiry_date` formatted as `MM/YYYY`.
+- `controller/ApiKeyAuthFilterTest` (@integration) — missing API key → 401; invalid API key → 403.
+- `controller/PaymentGatewayControllerPostTest` (@integration) — POST: 201 Authorized/Declined; 400 Rejected; 503 bank unavailable.
+- `controller/PaymentGatewayControllerValidatorRejectedTest` (@integration) — cross‑field validator triggers 400; bank not called; correlation header present.
+- `controller/PaymentGatewayControllerErrorAdviceTest` (@integration) — unexpected runtime error → 500 ErrorResponse.
+- `controller/PaymentGatewayControllerTest` (@integration) — GET: 200 for existing; 404 not found; invalid UUID → 400 Rejected.
+
+---
+
+## Production Hardening & Future Work
+
+The current implementation intentionally focuses on the assessment scope. In production, we would add:
+
+- API design & lifecycle
+  - Versioning (e.g., `/api/v1`).
+  - Stronger auth: OAuth2 client credentials or signed JWTs; mTLS for service‑to‑service.
+  - Idempotency for POST (Idempotency‑Key header, short‑TTL store, conflict detection).
+  - Rate limiting/quotas per API key and tenant; pagination & filtering for listing endpoints.
+
+- Resilience & reliability
+  - Retries only for transient faults (tight budget, jittered backoff), guarded by circuit breakers and bulkheads.
+  - Outbox pattern for external notifications; queue based async processing when needed.
+
+- Observability
+  - Metrics: `gateway.payments{result=*}`, bank call timers, 4xx/5xx rates; dashboards and alerts.
+  - Distributed tracing (trace/span ids) alongside correlation ids; synthetic checks.
+
+- Data protection & compliance
+  - PAN/CVV policy: never store CVV; avoid storing PAN.
+  - Hashing/HMAC for comparisons/lookup.
+  - Encryption in transit (TLS everywhere) and at rest (DB/volumes with KMS).
+  - Secrets management (e.g., Vault/SM/KMS); automatic rotation; never in source control.
+  - Data minimization & retention: configurable TTLs; GDPR/“right to be forgotten” workflows.
+
+These measures, combined with the current validation, masking, and structured logging, ensure a secure and resilient gateway suitable for production workloads.
+
+---
+
+## Troubleshooting & FAQ
+
+- 400 Rejected
+  - Input failed validation (see errors[]). Common cases: PAN length, CVV length, lowercase currency, expiry not in the future.
+- 401 Unauthorized
+  - Missing `X-API-Key`. Add the header; for local dev use `test-key` (configurable).
+- 403 Forbidden
+  - Invalid `X-API-Key`. Verify configuration `gateway.security.api-keys` and the header value.
+- 404 Not Found
+  - Wrong route (unknown path) or payment id does not exist.
+- 503 Service Unavailable
+  - Bank simulator returned 503 (card ending 0) or is down/unreachable. Ensure `docker compose up bank_simulator` is running.
+- Swagger UI not loading
+  - Verify app is on 8090 and bank simulator on 8080; check port collisions.
+- Logs hard to correlate
+  - Provide `X-Correlation-Id` in requests; the gateway will echo it and include it in log lines.
 
 ---
